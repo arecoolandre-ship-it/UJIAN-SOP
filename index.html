@@ -224,10 +224,10 @@ const Demo = {
     if (r.action === 'submit') {
       const s = d.sops.find(x => x.id === r.id); if (!s) throw new Error('SOP tidak ditemukan');
       const h = nilai(s.langkah, r.susunan, r.jawaban);
-      h.percobaan = 1 + d.hasil.filter(x => x.nik.toUpperCase() === r.nik.toUpperCase() && x.sopId === s.id).length;
+      h.percobaan = 1 + d.hasil.filter(x => x.nik.toUpperCase() === r.nik.toUpperCase() && x.namaSop === s.nama).length;
       const now = new Date(); const p = n => String(n).padStart(2, '0');
       d.hasil.unshift({ waktu: `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`,
-        nama: r.nama, nik: r.nik, sopId: s.id, no: s.no, namaSop: s.nama, skor: h.skor, lulus: h.lulus, percobaan: h.percobaan, kesalahan: h.kesalahan });
+        nama: r.nama, nik: r.nik, namaSop: s.nama, skor: h.skor, lulus: h.lulus, percobaan: h.percobaan, kesalahan: h.kesalahan });
       this.save(d); return h;
     }
     if (r.password !== this.PW) throw new Error('Password admin salah (demo: admin123)');
@@ -397,7 +397,7 @@ async function viewPustaka(el) {
     <div id="list"></div>`;
   const draw = q => {
     q = (q || '').toLowerCase();
-    const f = sops.filter(s => (s.nama + ' ' + s.no + ' ' + s.counter + ' ' + s.store).toLowerCase().includes(q));
+    const f = sops.filter(s => (s.nama + ' ' + (s.counter || '')).toLowerCase().includes(q));
     $('#list').innerHTML = f.length ? f.map(s => `
       <div class="card sop">
         <div class="ic">PDF</div>
@@ -619,17 +619,17 @@ async function admHasil(el) {
   el.innerHTML = `
     <div class="card">
       <div class="grid2">
-        <div><label style="margin-top:0">SOP</label><select id="hSop"><option value="">Semua SOP</option>${sops.map(s => `<option value="${esc(s.id)}">${esc(s.nama)}</option>`).join('')}</select></div>
+        <div><label style="margin-top:0">SOP</label><select id="hSop"><option value="">Semua SOP</option>${sops.map(s => `<option value="${esc(s.nama)}">${esc(s.nama)}</option>`).join('')}</select></div>
         <div><label style="margin-top:0">Cari nama / NIK</label><input type="search" id="hCari" placeholder="Ketik…"></div>
       </div>
     </div>
     <div id="hOut"></div>`;
   const draw = () => {
     const sid = $('#hSop').value, q = $('#hCari').value.toLowerCase();
-    const rows = H.filter(h => (!sid || h.sopId === sid) && (!q || (h.nama + ' ' + h.nik).toLowerCase().includes(q)));
+    const rows = H.filter(h => (!sid || h.namaSop === sid) && (!q || (h.nama + ' ' + h.nik).toLowerCase().includes(q)));
     const g = {};
     rows.slice().reverse().forEach(h => {
-      const k = h.nik.toUpperCase() + '|' + h.sopId;
+      const k = h.nik.toUpperCase() + '|' + h.namaSop;
       const x = g[k] || (g[k] = { nama: h.nama, nik: h.nik, sop: h.namaSop, n: 0, best: 0, last: null, lulus: false, waktuLulus: '' });
       x.n++; x.best = Math.max(x.best, h.skor); x.last = h; x.nama = h.nama;
       if (h.lulus && !x.lulus) { x.lulus = true; x.waktuLulus = h.waktu; }
