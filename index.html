@@ -443,7 +443,7 @@ async function viewAdmin(el) {
       try { A.info = await api('adminLogin'); sessionStorage.setItem('sopAdminPw', A.pw); render(); }
       catch (e) { A.pw = ''; toast(e.message, true); }
     };
-    $('#bLogin').onclick = login; $('#pw').onkeydown = e => e.key === 'Enter' && login();
+    $('#bLogin').onclick = login; $('#pw').onkeydown = e => { if (e.key === 'Enter') login(); };
     return;
   }
   el.innerHTML = `
