@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ujian SOP</title>
+<meta name="theme-color" content="#7a1f1a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+:root{
+  --bg:#f7f3ec; --card:#fff; --ink:#221d18; --muted:#776d62; --line:#e7dfd3;
+  --brand:#7a1f1a; --brand-2:#a8322a; --brand-soft:#f6e4df;
+  --ok:#1f6b45; --ok-soft:#e1f2e8; --bad:#b3261e; --bad-soft:#fbe3e0; --warn:#8a5a00; --warn-soft:#fdf0d5;
+  --r:14px; --shadow:0 1px 2px rgba(34,29,24,.06),0 4px 14px rgba(34,29,24,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+header{background:var(--brand);color:#fff;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.hwrap{max-width:860px;margin:0 auto;padding:12px 16px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.2px}
+.brand .dot{width:28px;height:28px;border-radius:8px;background:#fff;color:var(--brand);display:grid;place-items:center;font-size:15px}
+.brand small{font-weight:500;opacity:.8;font-size:12px;display:block;margin-top:-2px}
+nav{display:flex;gap:4px;margin-top:10px}
+nav button{flex:1;background:transparent;border:0;color:#f3d9d4;padding:10px 6px 12px;font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
+nav button.on{color:#fff;border-color:#fff}
+main{max-width:860px;margin:0 auto;padding:18px 16px 80px}
+.demo{background:var(--warn-soft);color:var(--warn);border:1px solid #f0d9a6;padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:-.2px}
+h2{font-size:17px;margin:0 0 10px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+label{display:block;font-weight:600;font-size:13px;margin:12px 0 6px}
+input[type=text],input[type=password],input[type=number],input[type=search],select,textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--brand-2)}
+textarea{resize:vertical;min-height:58px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;background:var(--brand);color:#fff;text-decoration:none;transition:filter .15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.block{width:100%;padding:14px}
+.btn.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand)}
+.btn.soft{background:var(--brand-soft);color:var(--brand)}
+.btn.sm{padding:7px 11px;font-size:13px;border-radius:8px}
+.btn.danger{background:#fff;color:var(--bad);border:1.5px solid #ecc1bc}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:99px;background:#f1ebe2;color:var(--muted)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)} .tag.bad{background:var(--bad-soft);color:var(--bad)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+.spin{display:inline-block;width:16px;height:16px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading{padding:30px;text-align:center;color:var(--muted)}
+
+/* ---- exam ---- */
+.exhead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.steps{list-style:none;padding:0;margin:0}
+.step{display:flex;gap:10px;align-items:center;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 10px 10px 6px;margin-bottom:10px;box-shadow:var(--shadow)}
+.step .handle{cursor:grab;color:#b9ada0;padding:6px 4px;font-size:18px;line-height:1;touch-action:none;user-select:none}
+.step .pos{flex:none;width:30px;height:30px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;font-size:14px}
+.step .txt{flex:1;font-weight:500}
+.step .txt input{display:inline-block;width:76px;padding:5px 8px;margin:2px 4px;border:2px dashed var(--brand-2);border-radius:8px;text-align:center;font-weight:800;color:var(--brand);background:#fffaf8}
+.step .mv{display:flex;flex-direction:column;gap:4px}
+.step .mv button{width:34px;height:28px;border:1px solid var(--line);background:#faf7f2;border-radius:7px;cursor:pointer;font-size:13px;color:var(--muted)}
+.step.sortable-ghost{opacity:.35}
+.step.chosen{border-color:var(--brand-2)}
+.step.ok{border-color:#9fd3b5;background:#f6fcf8}
+.step.bad{border-color:#eba59e;background:#fff7f6}
+.step .mark{font-size:12px;font-weight:700;margin-top:4px;display:block}
+.step .mark.bad{color:var(--bad)} .step .mark.ok{color:var(--ok)}
+.step input.badin{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+.step input.okin{border-color:var(--ok);border-style:solid;color:var(--ok);background:var(--ok-soft)}
+.result{text-align:center;padding:22px 18px}
+.result .score{font-size:54px;font-weight:800;line-height:1;margin:6px 0}
+.result.pass{background:var(--ok-soft);border-color:#b8dfc8} .result.pass .score{color:var(--ok)}
+.result.fail{background:var(--bad-soft);border-color:#f0c2bc} .result.fail .score{color:var(--bad)}
+.hint{background:#fbf8f3;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--muted);margin-bottom:14px}
+
+/* ---- library ---- */
+.sop{display:flex;gap:12px;align-items:center}
+.sop .ic{flex:none;width:44px;height:52px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;font-size:11px}
+.sop .info{flex:1;min-width:0}
+.sop .t{font-weight:700}
+.sop .m{font-size:12.5px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(20,16,12,.55);z-index:50;display:flex;align-items:center;justify-content:center;padding:12px}
+.modal .box{background:#fff;border-radius:16px;width:min(900px,100%);max-height:94vh;display:flex;flex-direction:column;overflow:hidden}
+.modal .mh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.modal .mb{padding:16px;overflow:auto}
+.modal iframe{width:100%;height:76vh;border:0;background:#eee}
+.x{border:0;background:#f1ebe2;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px}
+
+/* ---- admin ---- */
+.subtabs{display:flex;gap:6px;margin-bottom:14px}
+.subtabs button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:8px 14px;font-weight:600;cursor:pointer}
+.subtabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ed-step{display:grid;grid-template-columns:62px 1fr 92px auto;gap:8px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}
+.ed-step input,.ed-step textarea{padding:8px 9px}
+.ed-step .tools{display:flex;flex-direction:column;gap:4px}
+.ed-step .tools button{width:32px;height:26px;border:1px solid var(--line);background:#faf7f2;border-radius:6px;cursor:pointer;font-size:12px}
+.ed-head{display:grid;grid-template-columns:62px 1fr 92px auto;gap:8px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+@media(max-width:560px){.ed-step,.ed-head{grid-template-columns:52px 1fr 70px}.ed-step .tools{grid-column:1/-1;flex-direction:row;justify-content:flex-end}.ed-head span:last-child{display:none}}
+.bahan{display:flex;flex-wrap:wrap;gap:6px}
+.bahan span{background:#f6f1e9;border-radius:8px;padding:5px 9px;font-size:12.5px}
+.bahan b{color:var(--brand)}
+table{width:100%;min-width:600px;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
+.tbl{overflow-x:auto}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{font-size:22px;display:block}
+.stat span{font-size:12px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;z-index:99;font-weight:600;font-size:14px;max-width:92vw;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast.err{background:var(--bad)}
+.key{font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div class="brand"><div class="dot">✓</div><div>Ujian SOP<small>Langkah kerja &amp; gramasi</small></div></div>
+    <nav>
+      <button data-v="ujian" class="on">Ujian</button>
+      <button data-v="pustaka">Pustaka SOP</button>
+      <button data-v="admin">Admin</button>
+    </nav>
+  </div>
+</header>
+<main id="app"></main>
+<div id="modal"></div>
+
+<script>
+/* =========================================================
+   KONFIGURASI — tempel URL Web App Apps Script di sini.
+   Kosongkan untuk MODE DEMO (data tersimpan di browser saja).
+   ========================================================= */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyv9C_jOCrQ2-7NTgybJeydTxrqGyrSdJDrBtx-Q5NjrsOZvp1WOO28cHmojH-ZgSF_Qw/exec';
+
+const DEMO = !API_URL;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S = { view: 'ujian', sops: null, exam: null, admin: { pw: sessionStorage.getItem('sopAdminPw') || '', tab: 'sop', sops: null, hasil: null, info: {} } };
+
+function toast(msg, err) {
+  const t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), err ? 4500 : 2600);
+}
+
+/* ================= API ================= */
+async function api(action, payload = {}) {
+  const body = Object.assign({ action }, payload);
+  if (/^(admin|save|delete|list(?!Sop))/.test(action)) body.password = S.admin.pw;
+  if (DEMO) { await new Promise(r => setTimeout(r, 150)); return Demo.handle(body); }
+  const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error || 'Gagal');
+  return j.data;
+}
+
+/* Penilaian — logika SAMA dengan nilai_() di Code.gs */
+function nilai(langkah, susunan, jawaban) {
+  const map = {}; langkah.forEach(l => map[l.sid] = l);
+  if (!Array.isArray(susunan) || susunan.length !== langkah.length || susunan.some(s => !map[s]) ||
+      new Set(susunan).size !== langkah.length) throw new Error('Susunan jawaban tidak valid');
+  const sorted = langkah.map(l => Number(l.urutan)).sort((a, b) => a - b);
+  const posisi = susunan.map((sid, i) => Number(map[sid].urutan) === sorted[i]);
+  const gram = {};
+  langkah.forEach(l => {
+    if (l.jawaban === '' || l.jawaban == null) return;
+    const v = parseFloat(String((jawaban || {})[l.sid] == null ? '' : jawaban[l.sid]).replace(',', '.'));
+    gram[l.sid] = !isNaN(v) && Math.abs(v - Number(l.jawaban)) < 1e-9;
+  });
+  const total = posisi.length + Object.keys(gram).length;
+  const benar = posisi.filter(Boolean).length + Object.values(gram).filter(Boolean).length;
+  const salahPos = posisi.map((b, i) => b ? null : i + 1).filter(x => x);
+  const salahGram = langkah.filter(l => gram[l.sid] === false).map(l => l.teks.replace(/___/g, '?'));
+  const ket = [];
+  if (salahPos.length) ket.push('Urutan salah di posisi ' + salahPos.join(', '));
+  if (salahGram.length) ket.push('Gramasi salah: ' + salahGram.join(' | '));
+  return { posisi, gram, total, benar, skor: Math.floor(benar / total * 100), lulus: benar === total, kesalahan: ket.join('; ') };
+}
+function acak(steps, master) {
+  const u = {}; master.forEach(l => u[l.sid] = Number(l.urutan));
+  const sorted = master.map(l => Number(l.urutan)).sort((a, b) => a - b);
+  let arr = steps.slice();
+  for (let t = 0; t < 20; t++) {
+    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    if (!arr.every((s, i) => u[s.sid] === sorted[i])) break;
+  }
+  return arr;
+}
+
+/* ================= MODE DEMO (localStorage) ================= */
+const Demo = {
+  KEY: 'ujianSopDemo', PW: 'admin123',
+  seed() {
+    return { sops: [{
+      id: 'SOP-DEMO-1', no: '25/2039/225', nama: 'CARA BUAT INARI (KECIL) DAN MACAMNYA', counter: 'SUSHI', store: 'BSD & JGC', tanggal: '20-MAY-2019',
+      pdfId: '', pdfUrl: '', aktif: true, diperbarui: new Date().toISOString(),
+      bahan: [{nama:'INARI',qty:'1',unit:'p'},{nama:'SHARI NIGIRI',qty:'1',unit:'p'},{nama:'CHUKAWAKAME',qty:'15',unit:'gr'},{nama:'CHUKA IDAKO',qty:'15',unit:'gr'},{nama:'TUNA MAYO',qty:'15',unit:'gr'},{nama:'KANI MAYO',qty:'15',unit:'gr'}],
+      langkah: [
+        { sid: 'a1', urutan: 1, teks: 'Potong inari seperti gambar B untuk menjadikan inari dengan 1 shari', jawaban: '' },
+        { sid: 'a2', urutan: 2, teks: 'Letakkan shari ke dalam inari dan bentuk seperti pada gambar', jawaban: '' },
+        { sid: 'a3', urutan: 3, teks: 'Letakkan chuka idako pada inari seberat ___ gram', jawaban: '15' },
+        { sid: 'a4', urutan: 3, teks: 'Letakkan chuka wakame pada inari seberat ___ gram', jawaban: '15' },
+        { sid: 'a5', urutan: 3, teks: 'Letakkan kani mayo pada inari seberat ___ gram', jawaban: '15' },
+        { sid: 'a6', urutan: 3, teks: 'Letakkan tuna mayo pada inari seberat ___ gram', jawaban: '15' }
+      ] }], hasil: [] };
+  },
+  load() { try { const d = JSON.parse(localStorage.getItem(this.KEY)); if (d) return d; } catch (e) {} return this.seed(); },
+  save(d) { try { localStorage.setItem(this.KEY, JSON.stringify(d)); } catch (e) {} },
+  handle(r) {
+    const d = this.load();
+    const pub = s => ({ id: s.id, no: s.no, nama: s.nama, counter: s.counter, store: s.store, tanggal: s.tanggal, pdfId: s.pdfId, pdfUrl: s.pdfUrl, jumlahLangkah: s.langkah.length });
+    if (r.action === 'listSop') return d.sops.filter(s => s.aktif).map(pub);
+    if (r.action === 'getExam') {
+      const s = d.sops.find(x => x.id === r.id && x.aktif); if (!s) throw new Error('SOP tidak ditemukan');
+      return { id: s.id, no: s.no, nama: s.nama, langkah: acak(s.langkah.map(l => ({ sid: l.sid, teks: l.teks, blank: l.jawaban !== '' })), s.langkah) };
+    }
+    if (r.action === 'submit') {
+      const s = d.sops.find(x => x.id === r.id); if (!s) throw new Error('SOP tidak ditemukan');
+      const h = nilai(s.langkah, r.susunan, r.jawaban);
+      h.percobaan = 1 + d.hasil.filter(x => x.nik.toUpperCase() === r.nik.toUpperCase() && x.sopId === s.id).length;
+      const now = new Date(); const p = n => String(n).padStart(2, '0');
+      d.hasil.unshift({ waktu: `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`,
+        nama: r.nama, nik: r.nik, sopId: s.id, no: s.no, namaSop: s.nama, skor: h.skor, lulus: h.lulus, percobaan: h.percobaan, kesalahan: h.kesalahan });
+      this.save(d); return h;
+    }
+    if (r.password !== this.PW) throw new Error('Password admin salah (demo: admin123)');
+    if (r.action === 'adminLogin') return { sheetUrl: '', folderUrl: '' };
+    if (r.action === 'adminListSop') return d.sops;
+    if (r.action === 'listResults') return d.hasil;
+    if (r.action === 'deleteSop') { d.sops = d.sops.filter(s => s.id !== r.id); try { localStorage.removeItem('ujianSopPdf_' + r.id); } catch (e) {} this.save(d); return {}; }
+    if (r.action === 'saveSop') {
+      const sop = r.sop; const old = d.sops.find(s => s.id === sop.id);
+      const id = old ? old.id : 'SOP-' + Date.now();
+      const langkah = sop.langkah.map(l => ({ sid: l.sid || Math.random().toString(36).slice(2, 10), urutan: Number(l.urutan) || 1, teks: l.teks.trim(), jawaban: l.jawaban === '' ? '' : String(l.jawaban).replace(',', '.') }));
+      let pdfUrl = old ? old.pdfUrl : '';
+      if (r.pdf && r.pdf.base64) {
+        try { localStorage.setItem('ujianSopPdf_' + id, r.pdf.base64); pdfUrl = 'demo:' + id; }
+        catch (e) { toast('PDF terlalu besar untuk mode demo, SOP disimpan tanpa PDF', true); }
+      }
+      const rec = Object.assign({}, sop, { id, langkah, pdfUrl, pdfId: '', aktif: sop.aktif !== false, diperbarui: new Date().toISOString() });
+      if (old) d.sops[d.sops.indexOf(old)] = rec; else d.sops.push(rec);
+      this.save(d); return { id };
+    }
+    throw new Error('Aksi tidak dikenal');
+  }
+};
+
+/* ================= NAVIGASI ================= */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.v));
+function go(v) {
+  S.view = v;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  render(); window.scrollTo(0, 0);
+}
+function render() {
+  const app = $('#app');
+  const banner = DEMO ? `<div class="demo"><b>Mode demo</b>: data hanya tersimpan di browser ini. Isi <code>API_URL</code> di index.html untuk terhubung ke Google Sheets &amp; Drive. Password admin demo: <b>admin123</b></div>` : '';
+  app.innerHTML = banner + '<div id="view"></div>';
+  ({ ujian: viewUjian, pustaka: viewPustaka, admin: viewAdmin })[S.view]($('#view'));
+}
+async function loadSops(force) {
+  if (!S.sops || force) S.sops = await api('listSop');
+  return S.sops;
+}
+
+/* ================= UJIAN ================= */
+async function viewUjian(el) {
+  if (S.exam) return renderExam(el);
+  el.innerHTML = `<div class="loading"><span class="spin"></span> Memuat SOP…</div>`;
+  let sops;
+  try { sops = await loadSops(true); } catch (e) { el.innerHTML = `<div class="card empty">Gagal memuat: ${esc(e.message)}</div>`; return; }
+  if (!el.isConnected) return;
+  const me = JSON.parse(localStorage.getItem('sopStaff') || '{}');
+  el.innerHTML = `
+    <div class="card">
+      <h1>Ujian Pemahaman SOP</h1>
+      <p class="sub">Susun langkah kerja sesuai urutan SOP dan isi gramasi yang benar. Lulus jika nilai <b>100%</b>. Boleh diulang.</p>
+      <div class="grid2">
+        <div><label>Nama</label><input type="text" id="fNama" value="${esc(me.nama)}" placeholder="Nama lengkap" autocomplete="name"></div>
+        <div><label>NIK</label><input type="text" id="fNik" value="${esc(me.nik)}" placeholder="Nomor induk karyawan" inputmode="numeric"></div>
+      </div>
+      <label>Pilih SOP</label>
+      <select id="fSop">${sops.length ? sops.map(s => `<option value="${esc(s.id)}">${esc(s.nama)}${s.no ? ' — ' + esc(s.no) : ''}</option>`).join('') : '<option value="">Belum ada SOP</option>'}</select>
+      <div style="margin-top:18px"><button class="btn block" id="bMulai" ${sops.length ? '' : 'disabled'}>Mulai Ujian</button></div>
+    </div>`;
+  $('#bMulai').onclick = async () => {
+    const nama = $('#fNama').value.trim(), nik = $('#fNik').value.trim(), id = $('#fSop').value;
+    if (!nama || !nik) return toast('Nama dan NIK wajib diisi', true);
+    localStorage.setItem('sopStaff', JSON.stringify({ nama, nik }));
+    startExam({ nama, nik, id });
+  };
+}
+async function startExam(who) {
+  const el = $('#view');
+  el.innerHTML = `<div class="loading"><span class="spin"></span> Menyiapkan soal…</div>`;
+  try {
+    const ex = await api('getExam', { id: who.id });
+    S.exam = Object.assign({}, who, { data: ex, order: ex.langkah.map(l => l.sid), ans: {}, result: null });
+    renderExam(el);
+  } catch (e) { toast(e.message, true); S.exam = null; render(); }
+}
+function renderExam(el) {
+  const ex = S.exam, d = ex.data, r = ex.result;
+  const map = {}; d.langkah.forEach(l => map[l.sid] = l);
+  const sop = (S.sops || []).find(s => s.id === d.id);
+  const res = r ? `
+    <div class="card result ${r.lulus ? 'pass' : 'fail'}">
+      <div class="tag ${r.lulus ? 'ok' : 'bad'}">${r.lulus ? 'LULUS' : 'BELUM LULUS'}</div>
+      <div class="score">${r.skor}%</div>
+      <div>${r.benar} dari ${r.total} poin benar · Percobaan ke-${r.percobaan}</div>
+      <p class="muted" style="font-size:13px;margin:8px 0 14px">${r.lulus ? 'Mantap! Langkah dan gramasi sudah sesuai SOP.' : 'Lihat tanda merah di bawah. Baca kembali SOP lalu ulangi ujian.'}</p>
+      <div class="row" style="justify-content:center">
+        ${!r.lulus ? `<button class="btn" id="bUlang">Ulangi Ujian</button>` : ''}
+        ${sop && sop.pdfUrl ? `<button class="btn ghost" id="bBaca">Baca SOP</button>` : ''}
+        <button class="btn ${r.lulus ? '' : 'soft'}" id="bSelesai">Selesai</button>
+      </div>
+    </div>` : '';
+  el.innerHTML = `
+    ${res}
+    <div class="card">
+      <div class="exhead">
+        <div><h1 style="font-size:19px">${esc(d.nama)}</h1><div class="muted" style="font-size:13px">${esc(d.no)} · ${esc(ex.nama)} (${esc(ex.nik)})</div></div>
+        ${r ? '' : `<button class="btn sm soft" id="bBatal">Batal</button>`}
+      </div>
+    </div>
+    ${r ? '' : `<div class="hint">① Geser kartu (⋮⋮) atau tekan ▲▼ untuk menyusun urutan langkah dari <b>pertama</b> sampai <b>terakhir</b>.<br>② Isi angka gramasi pada kotak putus-putus.</div>`}
+    <ol class="steps" id="steps">
+      ${ex.order.map((sid, i) => {
+        const l = map[sid];
+        let cls = '', mark = '';
+        if (r) {
+          const pOk = r.posisi[i], gOk = r.gram[sid];
+          cls = (pOk && gOk !== false) ? 'ok' : 'bad';
+          const m = [];
+          if (!pOk) m.push('<span class="mark bad">✗ Urutan tidak tepat</span>');
+          if (gOk === false) m.push('<span class="mark bad">✗ Gramasi salah</span>');
+          if (!m.length) m.push('<span class="mark ok">✓ Benar</span>');
+          mark = m.join('');
+        }
+        const inCls = r && l.blank ? (r.gram[sid] ? 'okin' : 'badin') : '';
+        const parts = esc(l.teks).split('___');
+        const txt = l.blank && parts.length > 1
+          ? parts[0] + `<input type="text" inputmode="decimal" data-sid="${sid}" class="${inCls}" value="${esc(ex.ans[sid] || '')}" placeholder="…" ${r ? 'disabled' : ''}>` + parts.slice(1).join('___')
+          : esc(l.teks);
+        return `<li class="step ${cls}" data-sid="${sid}">
+          ${r ? '' : '<span class="handle">⋮⋮</span>'}
+          <span class="pos">${i + 1}</span>
+          <div class="txt">${txt}${mark}</div>
+          ${r ? '' : `<div class="mv"><button data-up="${i}" aria-label="Naik">▲</button><button data-dn="${i}" aria-label="Turun">▼</button></div>`}
+        </li>`;
+      }).join('')}
+    </ol>
+    ${r ? '' : `<button class="btn block" id="bKirim">Kirim Jawaban</button>`}`;
+
+  if (r) {
+    const u = $('#bUlang'); if (u) u.onclick = () => startExam({ nama: ex.nama, nik: ex.nik, id: d.id });
+    const b = $('#bBaca'); if (b) b.onclick = () => openPdf(sop);
+    $('#bSelesai').onclick = () => { S.exam = null; render(); };
+    return;
+  }
+  const list = $('#steps');
+  list.querySelectorAll('input[data-sid]').forEach(inp => inp.oninput = () => ex.ans[inp.dataset.sid] = inp.value);
+  const swap = (i, j) => { if (j < 0 || j >= ex.order.length) return; [ex.order[i], ex.order[j]] = [ex.order[j], ex.order[i]]; renderExam(el); };
+  list.querySelectorAll('[data-up]').forEach(b => b.onclick = () => swap(+b.dataset.up, +b.dataset.up - 1));
+  list.querySelectorAll('[data-dn]').forEach(b => b.onclick = () => swap(+b.dataset.dn, +b.dataset.dn + 1));
+  if (window.Sortable) Sortable.create(list, { handle: '.handle', animation: 150, chosenClass: 'chosen',
+    onEnd: () => { ex.order = [...list.children].map(li => li.dataset.sid); renderExam(el); } });
+  $('#bBatal').onclick = () => { if (confirm('Batalkan ujian? Jawaban tidak disimpan.')) { S.exam = null; render(); } };
+  $('#bKirim').onclick = async () => {
+    const kosong = d.langkah.filter(l => l.blank && !String(ex.ans[l.sid] || '').trim()).length;
+    if (kosong && !confirm(`${kosong} kotak gramasi masih kosong. Tetap kirim?`)) return;
+    if (!kosong && !confirm('Kirim jawaban sekarang?')) return;
+    const btn = $('#bKirim'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Menilai…';
+    try {
+      ex.result = await api('submit', { id: d.id, nama: ex.nama, nik: ex.nik, susunan: ex.order, jawaban: ex.ans });
+      renderExam(el); window.scrollTo(0, 0);
+    } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Kirim Jawaban'; }
+  };
+}
+
+/* ================= PUSTAKA ================= */
+async function viewPustaka(el) {
+  el.innerHTML = `<div class="loading"><span class="spin"></span> Memuat…</div>`;
+  let sops;
+  try { sops = await loadSops(true); } catch (e) { el.innerHTML = `<div class="card empty">Gagal memuat: ${esc(e.message)}</div>`; return; }
+  if (!el.isConnected) return;
+  el.innerHTML = `
+    <h1>Pustaka SOP</h1><p class="sub">${sops.length} SOP tersedia. Pelajari sebelum ujian.</p>
+    <input type="search" id="cari" placeholder="Cari nama item / nomor SOP…" style="margin-bottom:14px">
+    <div id="list"></div>`;
+  const draw = q => {
+    q = (q || '').toLowerCase();
+    const f = sops.filter(s => (s.nama + ' ' + s.no + ' ' + s.counter + ' ' + s.store).toLowerCase().includes(q));
+    $('#list').innerHTML = f.length ? f.map(s => `
+      <div class="card sop">
+        <div class="ic">PDF</div>
+        <div class="info"><div class="t">${esc(s.nama)}</div>
+          <div class="m">${[s.no, s.counter, s.store, s.tanggal].filter(Boolean).map(esc).join(' · ')}</div></div>
+        ${s.pdfUrl ? `<button class="btn sm" data-id="${esc(s.id)}">Lihat</button>` : '<span class="tag">Tanpa PDF</span>'}
+      </div>`).join('') : '<div class="card empty">Tidak ada SOP.</div>';
+    $('#list').querySelectorAll('[data-id]').forEach(b => b.onclick = () => openPdf(sops.find(s => s.id === b.dataset.id)));
+  };
+  draw(); $('#cari').oninput = e => draw(e.target.value);
+}
+function openPdf(s) {
+  let src, open;
+  if (String(s.pdfUrl).startsWith('demo:')) {
+    const b64 = localStorage.getItem('ujianSopPdf_' + s.id); if (!b64) return toast('PDF tidak ditemukan', true);
+    const bin = atob(b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    src = open = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
+  } else {
+    src = `https://drive.google.com/file/d/${encodeURIComponent(s.pdfId)}/preview`;
+    open = `https://drive.google.com/file/d/${encodeURIComponent(s.pdfId)}/view`;
+  }
+  modal(`<div class="mh"><b style="font-size:14px">${esc(s.nama)}</b><div class="row"><a class="btn sm ghost" href="${open}" target="_blank" rel="noopener">Buka di tab baru</a><button class="x" data-close>✕</button></div></div><iframe src="${src}"></iframe>`);
+}
+function modal(html) {
+  const m = $('#modal');
+  if (!html) { m.innerHTML = ''; document.body.style.overflow = ''; return; }
+  m.innerHTML = `<div class="modal"><div class="box">${html}</div></div>`;
+  document.body.style.overflow = 'hidden';
+  m.querySelectorAll('[data-close]').forEach(b => b.onclick = () => modal());
+  $('.modal', m).onclick = e => { if (e.target.classList.contains('modal')) modal(); };
+}
+
+/* ================= ADMIN ================= */
+async function viewAdmin(el) {
+  const A = S.admin;
+  if (!A.pw) {
+    el.innerHTML = `<div class="card" style="max-width:420px;margin:20px auto">
+      <h1>Masuk Admin</h1><p class="sub">Untuk upload SOP dan melihat rekap hasil ujian.</p>
+      <label>Password</label><input type="password" id="pw" autocomplete="current-password">
+      <div style="margin-top:16px"><button class="btn block" id="bLogin">Masuk</button></div></div>`;
+    const login = async () => {
+      A.pw = $('#pw').value;
+      try { A.info = await api('adminLogin'); sessionStorage.setItem('sopAdminPw', A.pw); render(); }
+      catch (e) { A.pw = ''; toast(e.message, true); }
+    };
+    $('#bLogin').onclick = login; $('#pw').onkeydown = e => e.key === 'Enter' && login();
+    return;
+  }
+  el.innerHTML = `
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <div class="subtabs" style="margin:0">
+        <button data-t="sop" class="${A.tab === 'sop' ? 'on' : ''}">Kelola SOP</button>
+        <button data-t="hasil" class="${A.tab === 'hasil' ? 'on' : ''}">Rekap Hasil</button>
+      </div>
+      <div class="row">
+        ${A.info.sheetUrl ? `<a class="btn sm ghost" href="${esc(A.info.sheetUrl)}" target="_blank" rel="noopener">Google Sheets</a>` : ''}
+        ${A.info.folderUrl ? `<a class="btn sm ghost" href="${esc(A.info.folderUrl)}" target="_blank" rel="noopener">Folder PDF</a>` : ''}
+        <button class="btn sm soft" id="bOut">Keluar</button>
+      </div>
+    </div>
+    <div id="adm"></div>`;
+  el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { A.tab = b.dataset.t; render(); });
+  $('#bOut').onclick = () => { A.pw = ''; sessionStorage.removeItem('sopAdminPw'); render(); };
+  if (!A.info.sheetUrl && !DEMO) api('adminLogin').then(i => { A.info = i; if (S.view === 'admin') render(); }).catch(e => { A.pw = ''; sessionStorage.removeItem('sopAdminPw'); toast(e.message, true); render(); });
+  (A.tab === 'sop' ? admSop : admHasil)($('#adm'));
+}
+
+async function admSop(el) {
+  el.innerHTML = `<div class="loading"><span class="spin"></span> Memuat…</div>`;
+  let sops;
+  try { sops = S.admin.sops = await api('adminListSop'); } catch (e) { el.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
+  if (!el.isConnected) return;
+  el.innerHTML = `
+    <div class="card" style="border-style:dashed;text-align:center">
+      <h2>Tambah SOP baru</h2>
+      <p class="sub" style="margin-bottom:12px">Upload PDF SOP — soal langkah &amp; gramasi disusun otomatis, lalu Anda periksa sebelum disimpan.</p>
+      <label class="btn" style="display:inline-flex;margin:0">Pilih PDF SOP<input type="file" id="fPdf" accept="application/pdf" hidden></label>
+    </div>
+    <h2>Daftar SOP (${sops.length})</h2>
+    ${sops.length ? sops.map(s => `
+      <div class="card sop">
+        <div class="ic">${s.langkah.length}<br>lkh</div>
+        <div class="info"><div class="t">${esc(s.nama)}</div>
+          <div class="m">${[s.no, s.counter, s.store].filter(Boolean).map(esc).join(' · ')} · ${s.pdfUrl ? 'PDF ✓' : 'tanpa PDF'}</div>
+          <div style="margin-top:4px"><span class="tag ${s.aktif ? 'ok' : ''}">${s.aktif ? 'Aktif' : 'Nonaktif'}</span></div></div>
+        <div class="row" style="flex-direction:column;gap:6px">
+          <button class="btn sm" data-ed="${esc(s.id)}">Edit</button>
+          <button class="btn sm danger" data-del="${esc(s.id)}">Hapus</button>
+        </div>
+      </div>`).join('') : '<div class="card empty">Belum ada SOP.</div>'}`;
+  $('#fPdf').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    el.querySelector('.card').innerHTML = `<div class="loading"><span class="spin"></span> Membaca PDF…</div>`;
+    try {
+      const buf = await f.arrayBuffer();
+      const lib = await loadPdfJs();
+      const p = await parsePdfFile(buf.slice(0), lib);
+      if (!p.langkah.length) toast('Langkah tidak terbaca otomatis — silakan isi manual', true);
+      editor({ nama: p.nama || f.name.replace(/\.pdf$/i, ''), no: p.no, counter: p.counter, store: p.store, tanggal: p.tanggal,
+        bahan: p.bahan, langkah: p.langkah.length ? p.langkah : [{ urutan: 1, teks: '', jawaban: '' }, { urutan: 2, teks: '', jawaban: '' }], aktif: true }, f);
+    } catch (err) { toast('Gagal membaca PDF: ' + err.message, true); render(); }
+  };
+  el.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => editor(JSON.parse(JSON.stringify(sops.find(s => s.id === b.dataset.ed))), null));
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const s = sops.find(x => x.id === b.dataset.del);
+    if (!confirm(`Hapus SOP "${s.nama}" beserta file PDF-nya?\nRiwayat hasil ujian tetap tersimpan.`)) return;
+    try { await api('deleteSop', { id: s.id }); toast('SOP dihapus'); S.sops = null; render(); } catch (e) { toast(e.message, true); }
+  });
+}
+
+let pdfJsP = null;
+function loadPdfJs() {
+  if (pdfJsP) return pdfJsP;
+  pdfJsP = new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(window.pdfjsLib); };
+    s.onerror = () => { pdfJsP = null; no(new Error('pdf.js gagal dimuat (cek internet)')); };
+    document.head.appendChild(s);
+  });
+  return pdfJsP;
+}
+
+function editor(sop, file) {
+  const el = $('#adm');
+  const draw = () => {
+    el.innerHTML = `
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h1 style="font-size:19px">${sop.id ? 'Edit SOP' : 'Periksa SOP baru'}</h1><button class="btn sm soft" id="eBatal">Batal</button></div>
+        <p class="sub">${file ? 'Hasil baca otomatis dari <b>' + esc(file.name) + '</b>. Periksa & perbaiki bila perlu.' : ''}</p>
+        <div class="grid2">
+          <div><label>Nama item</label><input type="text" data-f="nama" value="${esc(sop.nama)}"></div>
+          <div><label>No SOP</label><input type="text" data-f="no" value="${esc(sop.no)}"></div>
+          <div><label>Counter</label><input type="text" data-f="counter" value="${esc(sop.counter)}"></div>
+          <div><label>Store</label><input type="text" data-f="store" value="${esc(sop.store)}"></div>
+          <div><label>Tanggal SOP</label><input type="text" data-f="tanggal" value="${esc(sop.tanggal)}"></div>
+          <div><label>Status</label><select data-f="aktif"><option value="1" ${sop.aktif !== false ? 'selected' : ''}>Aktif (muncul di ujian)</option><option value="0" ${sop.aktif === false ? 'selected' : ''}>Nonaktif</option></select></div>
+        </div>
+        <label>File PDF</label>
+        <div class="row">
+          <span class="muted" style="font-size:13px">${file ? '📄 ' + esc(file.name) + ' (akan diunggah)' : sop.pdfUrl ? '📄 PDF tersimpan' : 'Belum ada PDF'}</span>
+          <label class="btn sm ghost" style="margin:0">${sop.pdfUrl || file ? 'Ganti PDF' : 'Pilih PDF'}<input type="file" id="ePdf" accept="application/pdf" hidden></label>
+        </div>
+        ${sop.bahan && sop.bahan.length ? `<label>Bahan &amp; gramasi di PDF (acuan)</label><div class="bahan">${sop.bahan.map(b => `<span>${esc(b.nama)} <b>${esc(b.qty)} ${esc(b.unit)}</b></span>`).join('')}</div>` : ''}
+      </div>
+      <div class="card">
+        <h2>Soal: langkah kerja + gramasi</h2>
+        <div class="hint" style="margin-bottom:10px">
+          • <b>No urut</b> = urutan yang benar. Langkah yang <b>boleh ditukar</b> (mis. variasi topping) beri nomor <b>sama</b>.<br>
+          • Tulis <b>___</b> (3 garis bawah) di teks tempat staff mengisi angka, lalu isi <b>Jawaban</b>-nya. Kosongkan jawaban jika langkah tanpa gramasi.
+        </div>
+        <div class="ed-head"><span>No urut</span><span>Teks langkah</span><span>Jawaban</span><span></span></div>
+        <div id="eSteps">${sop.langkah.map((l, i) => `
+          <div class="ed-step">
+            <input type="number" min="1" data-i="${i}" data-k="urutan" value="${esc(l.urutan)}">
+            <textarea data-i="${i}" data-k="teks" rows="2">${esc(l.teks)}</textarea>
+            <input type="text" inputmode="decimal" data-i="${i}" data-k="jawaban" value="${esc(l.jawaban)}" placeholder="—">
+            <div class="tools"><button data-a="up" data-i="${i}">▲</button><button data-a="dn" data-i="${i}">▼</button><button data-a="del" data-i="${i}" style="color:var(--bad)">✕</button></div>
+          </div>`).join('')}</div>
+        <div style="margin-top:12px"><button class="btn sm soft" id="eAdd">+ Tambah langkah</button></div>
+      </div>
+      <div class="card">
+        <h2>Pratinjau kunci jawaban</h2>
+        <div class="key" id="eKey"></div>
+      </div>
+      <button class="btn block" id="eSimpan">Simpan SOP</button>`;
+    bind();
+  };
+  const key = () => {
+    const ls = sop.langkah.slice().sort((a, b) => a.urutan - b.urutan);
+    $('#eKey').innerHTML = ls.map(l => `<div>${esc(l.urutan)}. ${esc(l.teks).replace(/___/g, `<b style="color:var(--brand)">${esc(l.jawaban || '?')}</b>`)}</div>`).join('');
+  };
+  const bind = () => {
+    el.querySelectorAll('[data-f]').forEach(inp => inp.oninput = inp.onchange = () => { const k = inp.dataset.f; sop[k] = k === 'aktif' ? inp.value === '1' : inp.value; });
+    el.querySelectorAll('#eSteps [data-k]').forEach(inp => inp.oninput = () => { const l = sop.langkah[+inp.dataset.i]; l[inp.dataset.k] = inp.dataset.k === 'urutan' ? Number(inp.value) : inp.value; key(); });
+    el.querySelectorAll('#eSteps [data-a]').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i, L = sop.langkah;
+      if (b.dataset.a === 'del') { if (L.length <= 2) return toast('Minimal 2 langkah', true); L.splice(i, 1); }
+      if (b.dataset.a === 'up' && i > 0) [L[i - 1], L[i]] = [L[i], L[i - 1]];
+      if (b.dataset.a === 'dn' && i < L.length - 1) [L[i + 1], L[i]] = [L[i], L[i + 1]];
+      draw();
+    });
+    $('#eAdd').onclick = () => { const mx = Math.max(0, ...sop.langkah.map(l => +l.urutan || 0)); sop.langkah.push({ urutan: mx + 1, teks: '', jawaban: '' }); draw(); };
+    $('#ePdf').onchange = e => { if (e.target.files[0]) { file = e.target.files[0]; draw(); } };
+    $('#eBatal').onclick = () => render();
+    $('#eSimpan').onclick = simpan;
+    key();
+  };
+  const simpan = async () => {
+    sop.langkah = sop.langkah.filter(l => String(l.teks).trim());
+    if (!String(sop.nama || '').trim()) return toast('Nama item wajib diisi', true);
+    if (sop.langkah.length < 2) return toast('Minimal 2 langkah', true);
+    for (const [i, l] of sop.langkah.entries()) {
+      const ada = l.teks.includes('___'), j = String(l.jawaban ?? '').trim();
+      if (!(Number(l.urutan) >= 1)) return toast(`Langkah ${i + 1}: no urut belum diisi`, true);
+      if (ada && !j) return toast(`Langkah ${i + 1}: ada ___ tapi jawaban kosong`, true);
+      if (!ada && j) return toast(`Langkah ${i + 1}: ada jawaban tapi teks belum diberi ___`, true);
+      if (j && isNaN(parseFloat(j.replace(',', '.')))) return toast(`Langkah ${i + 1}: jawaban harus angka`, true);
+      if ((l.teks.match(/___/g) || []).length > 1) return toast(`Langkah ${i + 1}: hanya boleh satu ___ per langkah`, true);
+    }
+    const btn = $('#eSimpan'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Menyimpan…';
+    try {
+      let pdf = null;
+      if (file) pdf = { name: file.name, base64: await toB64(file) };
+      await api('saveSop', { sop, pdf });
+      toast('SOP tersimpan'); S.sops = null; render();
+    } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Simpan SOP'; }
+  };
+  draw(); window.scrollTo(0, 0);
+}
+function toB64(file) {
+  return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = () => no(r.error); r.readAsDataURL(file); });
+}
+
+async function admHasil(el) {
+  el.innerHTML = `<div class="loading"><span class="spin"></span> Memuat hasil…</div>`;
+  let H, sops;
+  try { [H, sops] = await Promise.all([api('listResults'), S.admin.sops ? S.admin.sops : api('adminListSop')]); S.admin.sops = sops; }
+  catch (e) { el.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
+  if (!el.isConnected) return;
+  el.innerHTML = `
+    <div class="card">
+      <div class="grid2">
+        <div><label style="margin-top:0">SOP</label><select id="hSop"><option value="">Semua SOP</option>${sops.map(s => `<option value="${esc(s.id)}">${esc(s.nama)}</option>`).join('')}</select></div>
+        <div><label style="margin-top:0">Cari nama / NIK</label><input type="search" id="hCari" placeholder="Ketik…"></div>
+      </div>
+    </div>
+    <div id="hOut"></div>`;
+  const draw = () => {
+    const sid = $('#hSop').value, q = $('#hCari').value.toLowerCase();
+    const rows = H.filter(h => (!sid || h.sopId === sid) && (!q || (h.nama + ' ' + h.nik).toLowerCase().includes(q)));
+    const g = {};
+    rows.slice().reverse().forEach(h => {
+      const k = h.nik.toUpperCase() + '|' + h.sopId;
+      const x = g[k] || (g[k] = { nama: h.nama, nik: h.nik, sop: h.namaSop, n: 0, best: 0, last: null, lulus: false, waktuLulus: '' });
+      x.n++; x.best = Math.max(x.best, h.skor); x.last = h; x.nama = h.nama;
+      if (h.lulus && !x.lulus) { x.lulus = true; x.waktuLulus = h.waktu; }
+    });
+    const sum = Object.values(g).sort((a, b) => (a.lulus - b.lulus) || a.nama.localeCompare(b.nama));
+    const lulus = sum.filter(x => x.lulus).length;
+    $('#hOut').innerHTML = `
+      <div class="stats">
+        <div class="stat"><b>${sum.length}</b><span>Staff × SOP diuji</span></div>
+        <div class="stat"><b style="color:var(--ok)">${lulus}</b><span>Sudah lulus</span></div>
+        <div class="stat"><b style="color:var(--bad)">${sum.length - lulus}</b><span>Belum lulus</span></div>
+      </div>
+      <div class="card"><h2>Status per staff</h2>
+        ${sum.length ? `<div class="tbl"><table><thead><tr><th>Nama</th><th>NIK</th><th>SOP</th><th>Percobaan</th><th>Terakhir</th><th>Status</th></tr></thead><tbody>
+        ${sum.map(x => `<tr><td><b>${esc(x.nama)}</b></td><td>${esc(x.nik)}</td><td>${esc(x.sop)}</td><td>${x.n}×</td><td>${x.last.skor}%<div class="muted" style="font-size:11.5px">${esc(x.last.waktu)}</div></td>
+          <td><span class="tag ${x.lulus ? 'ok' : 'bad'}">${x.lulus ? 'LULUS' : 'BELUM'}</span>${x.lulus ? `<div class="muted" style="font-size:11.5px">${esc(x.waktuLulus)}</div>` : ''}</td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="empty">Belum ada hasil.</div>'}
+      </div>
+      <div class="card"><h2>Riwayat semua percobaan (${rows.length})</h2>
+        ${rows.length ? `<div class="tbl"><table><thead><tr><th>Waktu</th><th>Nama</th><th>SOP</th><th>Ke</th><th>Skor</th><th>Kesalahan</th></tr></thead><tbody>
+        ${rows.map(h => `<tr><td style="white-space:nowrap">${esc(h.waktu)}</td><td>${esc(h.nama)}<div class="muted" style="font-size:11.5px">${esc(h.nik)}</div></td><td>${esc(h.namaSop)}</td><td>${h.percobaan}</td>
+          <td><span class="tag ${h.lulus ? 'ok' : 'bad'}">${h.skor}%</span></td><td style="font-size:12.5px">${esc(h.kesalahan) || '—'}</td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="empty">Belum ada hasil.</div>'}
+      </div>`;
+  };
+  $('#hSop').onchange = draw; $('#hCari').oninput = draw; draw();
+}
+
+/* ===== PEMBACA PDF SOP → draf soal ===== */
+const KATA_KERJA = /^(POTONG|POTONGLAH|LETAKKAN|LETAKAN|TARUH|TARUHKAN|SUSUN|AMBIL|BENTUK|BENTUKKAN|GULUNG|TABUR|TABURKAN|BERI|BERIKAN|SIRAM|SIRAMKAN|OLES|OLESKAN|MASUKKAN|MASUKAN|TUANG|TUANGKAN|SIAPKAN|TIMBANG|PANASKAN|GORENG|REBUS|KUKUS|CAMPUR|CAMPURKAN|ADUK|BUNGKUS|LIPAT|TUTUP|BAKAR|PANGGANG|HIAS|HIASI|SAJIKAN|TEMPATKAN|ISI|ISIKAN|RAPIKAN|TEKAN|BELAH|IRIS|CETAK|LUMURI|CELUPKAN|TEMPELKAN|SEMPROT|BALIK|TAMBAHKAN|PASANG|GUNAKAN|PISAHKAN|BUANG|BERSIHKAN|CUCI|KEMAS|LETAK)\b/i;
+
+function kalimat(t) {
+  t = t.replace(/\s+/g, ' ').trim().toLowerCase();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function gabung(arr) {
+  let out = '', akhir = null;
+  arr.sort((p, q) => p.x - q.x).forEach(i => {
+    if (akhir !== null && i.x - akhir > Math.max(1.2, i.h * 0.12)) out += ' ';
+    out += i.s; akhir = i.x + i.w;
+  });
+  return out;
+}
+
+function bacaTeksPdf(items) {
+  // items: {s,x,y(top-down),w,h}
+  items.sort((a, b) => a.y - b.y || a.x - b.x);
+  // ---- baris (untuk header & tabel bahan)
+  const baris = [];
+  items.forEach(it => {
+    let b = baris.find(r => Math.abs(r.y - it.y) < Math.max(3, it.h * 0.45));
+    if (!b) { b = { y: it.y, it: [] }; baris.push(b); }
+    b.it.push(it);
+  });
+  baris.sort((a, b) => a.y - b.y);
+  const lines = baris.map(b => gabung(b.it).replace(/\s+/g, ' ').trim());
+  const full = lines.join("\n");
+
+  const ambil = (re) => { const m = full.match(re); return m ? m[1].trim() : ''; };
+  const hasil = {
+    nama: ambil(/Item\s*name\s*:\s*([^\n]+)/i),
+    no: ambil(/\bNO\s*:\s*([0-9][0-9\/.\-]*)/),
+    tanggal: ambil(/Made\s*:\s*(\d{1,2}[-\/ ][A-Za-z0-9]+[-\/ ]\d{2,4})/i),
+    store: ambil(/STORE\s*:\s*([^\n]+?)(?=\s+(?:Standards|NO\s*:|Made\s*:)|\n|$)/i),
+    counter: ambil(/Counter\s+([A-Za-z][A-Za-z ]{1,30})/),
+    bahan: [], langkah: []
+  };
+  // ---- bahan
+  const reB = /(?:^|\s)(\d{1,2})\s+([A-Za-z][A-Za-z0-9 .()\/&'-]*?)\s+(\d+(?:[.,]\d+)?)\s*(gr|gram|g|kg|ml|ltr|l|p|pc|pcs)\b/i;
+  lines.forEach(l => { const m = l.match(reB); if (m) hasil.bahan.push({ nama: m[2].trim(), qty: m[3].replace(',', '.'), unit: m[4] }); });
+
+  // ---- blok teks (keterangan di bawah gambar langkah)
+  const blok = [];
+  items.forEach(it => {
+    const b = blok.find(k => it.x < k.x2 + 4 && it.x + it.w > k.x1 - 4 && it.y - k.y2 < Math.max(4, it.h * 1.9) && it.y >= k.y1 - 3);
+    if (b) { b.it.push(it); b.x1 = Math.min(b.x1, it.x); b.x2 = Math.max(b.x2, it.x + it.w); b.y2 = Math.max(b.y2, it.y); }
+    else blok.push({ x1: it.x, x2: it.x + it.w, y1: it.y, y2: it.y, it: [it] });
+  });
+  const teksBlok = k => {
+    const rs = [];
+    k.it.forEach(it => { let r = rs.find(q => Math.abs(q.y - it.y) < Math.max(3, it.h * 0.45)); if (!r) { r = { y: it.y, a: [] }; rs.push(r); } r.a.push(it); });
+    return rs.sort((a, b) => a.y - b.y).map(r => gabung(r.a)).join(' ').replace(/\s+/g, ' ').trim();
+  };
+  let cand = blok.map(k => ({ y: k.y1, x: k.x1, t: teksBlok(k) }))
+    .filter(k => !/Item\s*name|Standards|Ingredient/i.test(k.t))
+    .filter(k => /NOTE\s*:/i.test(k.t) || KATA_KERJA.test(k.t.replace(/^\d+\s*[.)]?\s*/, '')));
+  // urutkan per baris (atas→bawah) lalu kiri→kanan
+  cand.sort((a, b) => a.y - b.y);
+  const rows = [];
+  cand.forEach(c => { const r = rows.find(r => Math.abs(r.y - c.y) < 30); if (r) r.c.push(c); else rows.push({ y: c.y, c: [c] }); });
+  cand = [].concat(...rows.map(r => r.c.sort((a, b) => a.x - b.x)));
+
+  let urut = 0, kunciLalu = null;
+  cand.forEach(c => {
+    let t = c.t.replace(/NOTE\s*:\s*/ig, '').replace(/^\d+\s*[.)]\s*/, '');
+    t = kalimat(t);
+    let jawaban = '';
+    const m = t.match(/(\d+(?:[.,]\d+)?)\s*(gr|gram|grams|g|kg|ml)\b/i);
+    if (m) { jawaban = m[1].replace(',', '.'); t = t.replace(m[0], '___ ' + (/^g/i.test(m[2]) ? 'gram' : m[2].toLowerCase())); }
+    // langkah sejenis berturut-turut (mis. variasi topping) → nomor urutan sama
+    const kunci = t.replace(/^(\S+)\s+.+?\s+(pada|di atas|diatas|ke atas|ke dalam|kedalam)\s+/i, '$1 * $2 ');
+    if (!(jawaban && kunci === kunciLalu && kunci !== t)) urut++;
+    kunciLalu = kunci;
+    hasil.langkah.push({ urutan: urut, teks: t, jawaban });
+  });
+  return hasil;
+}
+
+async function parsePdfFile(arrayBuffer, pdfjsLib) {
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const items = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const vp = page.getViewport({ scale: 1 });
+    const tc = await page.getTextContent();
+    tc.items.forEach(it => {
+      if (!it.str || !it.str.trim()) return;
+      const h = Math.abs(it.transform[3]) || it.height || 8;
+      items.push({ s: it.str, x: it.transform[4], y: (p - 1) * 5000 + (vp.height - it.transform[5]), w: it.width || it.str.length * h * 0.5, h });
+    });
+  }
+  return bacaTeksPdf(items);
+}
+if (typeof module !== 'undefined') module.exports = { parsePdfFile };
+
+
+render();
+</script>
+</body>
+</html>
