@@ -287,7 +287,7 @@ async function viewUjian(el) {
         <div><label>NIK</label><input type="text" id="fNik" value="${esc(me.nik)}" placeholder="Nomor induk karyawan" inputmode="numeric"></div>
       </div>
       <label>Pilih SOP</label>
-      <select id="fSop">${sops.length ? sops.map(s => `<option value="${esc(s.id)}">${esc(s.nama)}${s.no ? ' — ' + esc(s.no) : ''}</option>`).join('') : '<option value="">Belum ada SOP</option>'}</select>
+      <select id="fSop">${sops.length ? sops.map(s => `<option value="${esc(s.id)}">${esc(s.nama)}</option>`).join('') : '<option value="">Belum ada SOP</option>'}</select>
       <div style="margin-top:18px"><button class="btn block" id="bMulai" ${sops.length ? '' : 'disabled'}>Mulai Ujian</button></div>
     </div>`;
   $('#bMulai').onclick = async () => {
@@ -326,7 +326,7 @@ function renderExam(el) {
     ${res}
     <div class="card">
       <div class="exhead">
-        <div><h1 style="font-size:19px">${esc(d.nama)}</h1><div class="muted" style="font-size:13px">${esc(d.no)} · ${esc(ex.nama)} (${esc(ex.nik)})</div></div>
+        <div><h1 style="font-size:19px">${esc(d.nama)}</h1><div class="muted" style="font-size:13px">${esc(ex.nama)} (${esc(ex.nik)})</div></div>
         ${r ? '' : `<button class="btn sm soft" id="bBatal">Batal</button>`}
       </div>
     </div>
@@ -393,7 +393,7 @@ async function viewPustaka(el) {
   if (!el.isConnected) return;
   el.innerHTML = `
     <h1>Pustaka SOP</h1><p class="sub">${sops.length} SOP tersedia. Pelajari sebelum ujian.</p>
-    <input type="search" id="cari" placeholder="Cari nama item / nomor SOP…" style="margin-bottom:14px">
+    <input type="search" id="cari" placeholder="Cari nama item…" style="margin-bottom:14px">
     <div id="list"></div>`;
   const draw = q => {
     q = (q || '').toLowerCase();
@@ -402,7 +402,7 @@ async function viewPustaka(el) {
       <div class="card sop">
         <div class="ic">PDF</div>
         <div class="info"><div class="t">${esc(s.nama)}</div>
-          <div class="m">${[s.no, s.counter, s.store, s.tanggal].filter(Boolean).map(esc).join(' · ')}</div></div>
+          <div class="m">${esc(s.counter)}</div></div>
         ${s.pdfUrl ? `<button class="btn sm" data-id="${esc(s.id)}">Lihat</button>` : '<span class="tag">Tanpa PDF</span>'}
       </div>`).join('') : '<div class="card empty">Tidak ada SOP.</div>';
     $('#list').querySelectorAll('[data-id]').forEach(b => b.onclick = () => openPdf(sops.find(s => s.id === b.dataset.id)));
@@ -481,7 +481,7 @@ async function admSop(el) {
       <div class="card sop">
         <div class="ic">${s.langkah.length}<br>lkh</div>
         <div class="info"><div class="t">${esc(s.nama)}</div>
-          <div class="m">${[s.no, s.counter, s.store].filter(Boolean).map(esc).join(' · ')} · ${s.pdfUrl ? 'PDF ✓' : 'tanpa PDF'}</div>
+          <div class="m">${[s.counter, s.pdfUrl ? 'PDF ✓' : 'tanpa PDF'].filter(Boolean).map(esc).join(' · ')}</div>
           <div style="margin-top:4px"><span class="tag ${s.aktif ? 'ok' : ''}">${s.aktif ? 'Aktif' : 'Nonaktif'}</span></div></div>
         <div class="row" style="flex-direction:column;gap:6px">
           <button class="btn sm" data-ed="${esc(s.id)}">Edit</button>
@@ -496,7 +496,7 @@ async function admSop(el) {
       const lib = await loadPdfJs();
       const p = await parsePdfFile(buf.slice(0), lib);
       if (!p.langkah.length) toast('Langkah tidak terbaca otomatis — silakan isi manual', true);
-      editor({ nama: p.nama || f.name.replace(/\.pdf$/i, ''), no: p.no, counter: p.counter, store: p.store, tanggal: p.tanggal,
+      editor({ nama: p.nama || f.name.replace(/\.pdf$/i, ''), no: '', counter: p.counter, store: '', tanggal: '',
         bahan: p.bahan, langkah: p.langkah.length ? p.langkah : [{ urutan: 1, teks: '', jawaban: '' }, { urutan: 2, teks: '', jawaban: '' }], aktif: true }, f);
     } catch (err) { toast('Gagal membaca PDF: ' + err.message, true); render(); }
   };
@@ -530,10 +530,7 @@ function editor(sop, file) {
         <p class="sub">${file ? 'Hasil baca otomatis dari <b>' + esc(file.name) + '</b>. Periksa & perbaiki bila perlu.' : ''}</p>
         <div class="grid2">
           <div><label>Nama item</label><input type="text" data-f="nama" value="${esc(sop.nama)}"></div>
-          <div><label>No SOP</label><input type="text" data-f="no" value="${esc(sop.no)}"></div>
           <div><label>Counter</label><input type="text" data-f="counter" value="${esc(sop.counter)}"></div>
-          <div><label>Store</label><input type="text" data-f="store" value="${esc(sop.store)}"></div>
-          <div><label>Tanggal SOP</label><input type="text" data-f="tanggal" value="${esc(sop.tanggal)}"></div>
           <div><label>Status</label><select data-f="aktif"><option value="1" ${sop.aktif !== false ? 'selected' : ''}>Aktif (muncul di ujian)</option><option value="0" ${sop.aktif === false ? 'selected' : ''}>Nonaktif</option></select></div>
         </div>
         <label>File PDF</label>
@@ -602,6 +599,7 @@ function editor(sop, file) {
     try {
       let pdf = null;
       if (file) pdf = { name: file.name, base64: await toB64(file) };
+      sop.no = ''; sop.store = ''; sop.tanggal = '';
       await api('saveSop', { sop, pdf });
       toast('SOP tersimpan'); S.sops = null; render();
     } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Simpan SOP'; }
