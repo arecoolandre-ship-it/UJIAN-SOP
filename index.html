@@ -465,7 +465,7 @@ async function admSop(el) {
   el.innerHTML = `
     <div class="card" style="border-style:dashed;text-align:center">
       <h2>Tambah SOP baru</h2>
-      <p class="sub" style="margin-bottom:12px">Upload PDF SOP — tabel Ingredient &amp; Weight otomatis jadi soal dan kunci, lalu Anda periksa sebelum disimpan.</p>
+      <p class="sub" style="margin-bottom:12px">Upload PDF SOP — tabel Ingredient &amp; Weight otomatis jadi soal dan kunci, langsung tersimpan &amp; aktif. Perbaikan bisa lewat tombol Edit.</p>
       <label class="btn" style="display:inline-flex;margin:0">Pilih PDF SOP<input type="file" id="fPdf" accept="application/pdf" hidden></label>
     </div>
     <h2>Daftar SOP (${sops.length})</h2>
@@ -487,9 +487,20 @@ async function admSop(el) {
       const buf = await f.arrayBuffer();
       const lib = await loadPdfJs();
       const p = await parsePdfFile(buf.slice(0), lib);
-
-      editor({ nama: p.nama || f.name.replace(/\.pdf$/i, ''), no: '', counter: p.counter, store: '', tanggal: '',
-        bahan: p.bahan, langkah: p.langkah, aktif: true }, f);
+      const sop = { nama: (p.nama || f.name.replace(/\.pdf$/i, '')).trim(), no: '', counter: p.counter, store: '', tanggal: '',
+        bahan: p.bahan, langkah: [], aktif: true };
+      sop.langkah = soalBahan(sop).filter(l => l.teks && String(l.jawaban).trim());
+      if (!sop.langkah.length) {
+        modal(`<div class="mh"><b>PDF dilewati</b><button class="x" data-close>✕</button></div>
+          <div class="mb"><p><b>${esc(f.name)}</b> tidak disimpan karena tabel <b>Ingredient / Weight</b> tidak terbaca
+          (kemungkinan PDF hasil scan/foto atau format tabel berbeda).</p>
+          <p class="muted">Pastikan PDF berisi teks (bukan hasil scan/foto) dengan tabel Ingredient &amp; Weight, lalu upload ulang.</p>
+          <button class="btn block" data-close>Mengerti</button></div>`);
+        render(); return;
+      }
+      el.querySelector('.card').innerHTML = `<div class="loading"><span class="spin"></span> Menyimpan ${sop.langkah.length} soal…</div>`;
+      await api('saveSop', { sop, pdf: { name: f.name, base64: await toB64(f) } });
+      toast(`Tersimpan: ${sop.nama} (${sop.langkah.length} soal)`); S.sops = null; render();
     } catch (err) { toast('Gagal membaca PDF: ' + err.message, true); render(); }
   };
   el.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => editor(JSON.parse(JSON.stringify(sops.find(s => s.id === b.dataset.ed))), null));
