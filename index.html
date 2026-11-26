@@ -77,6 +77,18 @@ textarea{resize:vertical;min-height:58px}
 .result .score{font-size:54px;font-weight:800;line-height:1;margin:6px 0}
 .result.pass{background:var(--ok-soft);border-color:#b8dfc8} .result.pass .score{color:var(--ok)}
 .result.fail{background:var(--bad-soft);border-color:#f0c2bc} .result.fail .score{color:var(--bad)}
+.q{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow)}
+.q.ok{border-color:#9fd3b5;background:#f6fcf8}.q.bad{border-color:#eba59e;background:#fff7f6}
+.qtop{display:flex;gap:10px;align-items:center}
+.qtop .pos{flex:none;width:30px;height:30px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:800;font-size:14px}
+.qnama{font-weight:800;font-size:17px;letter-spacing:.2px}
+.qkunci{font-size:13px;color:var(--muted)}.qkunci b{color:var(--brand);font-size:14px}
+.qbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.qbtn button{padding:12px;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;background:#fff;border:1.5px solid var(--line)}
+.qbtn .yes{color:var(--ok)}.qbtn .no{color:var(--bad)}
+.qbtn .yes.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.qbtn .no.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.qbtn button:disabled{cursor:default}
 .hint{background:#fbf8f3;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--muted);margin-bottom:14px}
 
 /* ---- library ---- */
@@ -102,6 +114,7 @@ textarea{resize:vertical;min-height:58px}
 .ed-step .tools button{width:32px;height:26px;border:1px solid var(--line);background:#faf7f2;border-radius:6px;cursor:pointer;font-size:12px}
 .ed-head{display:grid;grid-template-columns:62px 1fr 92px auto;gap:8px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 @media(max-width:560px){.ed-step,.ed-head{grid-template-columns:52px 1fr 70px}.ed-step .tools{grid-column:1/-1;flex-direction:row;justify-content:flex-end}.ed-head span:last-child{display:none}}
+.ed-soal .tools{grid-column:auto!important;flex-direction:column!important}
 .bahan{display:flex;flex-wrap:wrap;gap:6px}
 .bahan span{background:#f6f1e9;border-radius:8px;padding:5px 9px;font-size:12.5px}
 .bahan b{color:var(--brand)}
@@ -121,9 +134,9 @@ th{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--mut
 <body>
 <header>
   <div class="hwrap">
-    <div class="brand"><div class="dot">✓</div><div>Ujian SOP<small>Uji gramasi SOP</small></div></div>
+    <div class="brand"><div class="dot">✓</div><div>Ujian SOP<small>Penilaian gramasi SOP</small></div></div>
     <nav>
-      <button data-v="ujian" class="on">Ujian</button>
+      <button data-v="ujian" class="on">Penilaian</button>
       <button data-v="pustaka">Pustaka SOP</button>
       <button data-v="admin">Admin</button>
     </nav>
@@ -152,7 +165,7 @@ function toast(msg, err) {
 /* ================= API ================= */
 async function api(action, payload = {}) {
   const body = Object.assign({ action }, payload);
-  if (/^(admin|save|delete|list(?!Sop))/.test(action)) body.password = S.admin.pw;
+  if (/^(admin|save|delete|getExam|submit|list(?!Sop))/.test(action)) body.password = S.admin.pw;
   if (DEMO) { await new Promise(r => setTimeout(r, 150)); return Demo.handle(body); }
   const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
   const j = await res.json();
@@ -160,32 +173,28 @@ async function api(action, payload = {}) {
   return j.data;
 }
 
-/* Penilaian gramasi — logika SAMA dengan nilai_() di Code.gs */
-function nilai(langkah, jawaban) {
-  const gram = {};
-  langkah.forEach(l => {
-    if (l.jawaban === '' || l.jawaban == null) return;
-    const v = parseFloat(String((jawaban || {})[l.sid] == null ? '' : jawaban[l.sid]).replace(',', '.'));
-    gram[l.sid] = !isNaN(v) && Math.abs(v - Number(l.jawaban)) < 1e-9;
-  });
-  const total = Object.keys(gram).length;
-  if (!total) throw new Error('SOP ini belum punya soal gramasi');
-  const benar = Object.values(gram).filter(Boolean).length;
-  const salah = langkah.filter(l => gram[l.sid] === false).map(l => l.teks.replace(/___/g, '?'));
-  return { gram, total, benar, skor: Math.floor(benar / total * 100), lulus: benar === total,
-    kesalahan: salah.length ? 'Gramasi salah: ' + salah.join(' | ') : '' };
+/* Penilaian lisan — logika SAMA dengan nilai_() di Code.gs */
+function nilai(soal, tanda) {
+  soal = soal.filter(l => l.teks && l.jawaban !== '');
+  if (!soal.length) throw new Error('SOP ini belum punya soal');
+  tanda = tanda || {};
+  if (soal.some(l => typeof tanda[l.sid] !== 'boolean')) throw new Error('Masih ada soal yang belum dinilai');
+  const benar = soal.filter(l => tanda[l.sid]).length, total = soal.length;
+  const salah = soal.filter(l => !tanda[l.sid]).map(l => l.teks + ' (' + l.jawaban + ')');
+  return { total, benar, skor: Math.floor(benar / total * 100), lulus: benar === total,
+    kesalahan: salah.length ? 'Salah: ' + salah.join(', ') : '' };
 }
 function acak(arr) {
   arr = arr.slice();
   for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
   return arr;
 }
-/* Ambil soal gramasi dari langkah; jika tidak ada, buat dari tabel bahan (satuan berat/volume). */
-function soalGramasi(sop) {
-  let soal = (sop.langkah || []).filter(l => String(l.jawaban ?? '').trim() !== '');
-  if (!soal.length) soal = (sop.bahan || []).filter(b => /^(gr|gram|g|kg|ml)$/i.test(b.unit))
-    .map(b => ({ teks: `Gramasi ${b.nama.toLowerCase()}: ___ ${/^g/i.test(b.unit) ? 'gram' : b.unit.toLowerCase()}`, jawaban: b.qty }));
-  return soal.map((l, i) => Object.assign({}, l, { urutan: i + 1 }));
+/* Soal = kolom Ingredient, jawaban = kolom Weight. Data lama (format "___") dibuat ulang dari tabel bahan. */
+function soalBahan(sop) {
+  let soal = (sop.langkah || []).filter(l => l.teks && !String(l.teks).includes('___'));
+  if (!soal.length || (sop.langkah || []).some(l => String(l.teks).includes('___')))
+    soal = (sop.bahan || []).map(b => ({ teks: b.nama, jawaban: (b.qty + ' ' + b.unit).trim() }));
+  return soal.map((l, i) => ({ sid: l.sid, urutan: i + 1, teks: l.teks, jawaban: l.jawaban }));
 }
 
 /* ================= MODE DEMO (localStorage) ================= */
@@ -197,12 +206,12 @@ const Demo = {
       pdfId: '', pdfUrl: '', aktif: true, diperbarui: new Date().toISOString(),
       bahan: [{nama:'INARI',qty:'1',unit:'p'},{nama:'SHARI NIGIRI',qty:'1',unit:'p'},{nama:'CHUKAWAKAME',qty:'15',unit:'gr'},{nama:'CHUKA IDAKO',qty:'15',unit:'gr'},{nama:'TUNA MAYO',qty:'15',unit:'gr'},{nama:'KANI MAYO',qty:'15',unit:'gr'}],
       langkah: [
-        { sid: 'a1', urutan: 1, teks: 'Potong inari seperti gambar B untuk menjadikan inari dengan 1 shari', jawaban: '' },
-        { sid: 'a2', urutan: 2, teks: 'Letakkan shari ke dalam inari dan bentuk seperti pada gambar', jawaban: '' },
-        { sid: 'a3', urutan: 3, teks: 'Letakkan chuka idako pada inari seberat ___ gram', jawaban: '15' },
-        { sid: 'a4', urutan: 3, teks: 'Letakkan chuka wakame pada inari seberat ___ gram', jawaban: '15' },
-        { sid: 'a5', urutan: 3, teks: 'Letakkan kani mayo pada inari seberat ___ gram', jawaban: '15' },
-        { sid: 'a6', urutan: 3, teks: 'Letakkan tuna mayo pada inari seberat ___ gram', jawaban: '15' }
+        { sid: 'a1', urutan: 1, teks: 'INARI', jawaban: '1 p' },
+        { sid: 'a2', urutan: 2, teks: 'SHARI NIGIRI', jawaban: '1 p' },
+        { sid: 'a3', urutan: 3, teks: 'CHUKAWAKAME', jawaban: '15 gr' },
+        { sid: 'a4', urutan: 4, teks: 'CHUKA IDAKO', jawaban: '15 gr' },
+        { sid: 'a5', urutan: 5, teks: 'TUNA MAYO', jawaban: '15 gr' },
+        { sid: 'a6', urutan: 6, teks: 'KANI MAYO', jawaban: '15 gr' }
       ] }], hasil: [] };
   },
   load() { try { const d = JSON.parse(localStorage.getItem(this.KEY)); if (d) return d; } catch (e) {} return this.seed(); },
@@ -211,15 +220,16 @@ const Demo = {
     const d = this.load();
     const pub = s => ({ id: s.id, no: s.no, nama: s.nama, counter: s.counter, store: s.store, tanggal: s.tanggal, pdfId: s.pdfId, pdfUrl: s.pdfUrl, jumlahLangkah: s.langkah.length });
     if (r.action === 'listSop') return d.sops.filter(s => s.aktif).map(pub);
+    if (r.password !== this.PW) throw new Error('Password admin salah (demo: admin123)');
     if (r.action === 'getExam') {
       const s = d.sops.find(x => x.id === r.id && x.aktif); if (!s) throw new Error('SOP tidak ditemukan');
-      const soal = s.langkah.filter(l => l.jawaban !== '').map(l => ({ sid: l.sid, teks: l.teks, blank: true }));
-      if (!soal.length) throw new Error('SOP ini belum punya soal gramasi');
-      return { id: s.id, nama: s.nama, langkah: acak(soal) };
+      const soal = s.langkah.filter(l => l.teks && l.jawaban !== '').map(l => ({ sid: l.sid, teks: l.teks, jawaban: l.jawaban }));
+      if (!soal.length) throw new Error('SOP ini belum punya soal');
+      return { id: s.id, nama: s.nama, soal: acak(soal) };
     }
     if (r.action === 'submit') {
       const s = d.sops.find(x => x.id === r.id); if (!s) throw new Error('SOP tidak ditemukan');
-      const h = nilai(s.langkah, r.jawaban);
+      const h = nilai(s.langkah, r.tanda);
       h.percobaan = 1 + d.hasil.filter(x => x.nik.toUpperCase() === r.nik.toUpperCase() && x.namaSop === s.nama).length;
       const now = new Date(); const p = n => String(n).padStart(2, '0');
       d.hasil.unshift({ waktu: `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`,
@@ -234,7 +244,7 @@ const Demo = {
     if (r.action === 'saveSop') {
       const sop = r.sop; const old = d.sops.find(s => s.id === sop.id);
       const id = old ? old.id : 'SOP-' + Date.now();
-      const langkah = sop.langkah.map(l => ({ sid: l.sid || Math.random().toString(36).slice(2, 10), urutan: Number(l.urutan) || 1, teks: l.teks.trim(), jawaban: l.jawaban === '' ? '' : String(l.jawaban).replace(',', '.') }));
+      const langkah = sop.langkah.map(l => ({ sid: l.sid || Math.random().toString(36).slice(2, 10), urutan: Number(l.urutan) || 1, teks: l.teks.trim(), jawaban: String(l.jawaban ?? '').trim() }));
       let pdfUrl = old ? old.pdfUrl : '';
       if (r.pdf && r.pdf.base64) {
         try { localStorage.setItem('ujianSopPdf_' + id, r.pdf.base64); pdfUrl = 'demo:' + id; }
@@ -267,29 +277,42 @@ async function loadSops(force) {
 }
 
 /* ================= UJIAN ================= */
+function loginForm(el, judul, ket) {
+  const A = S.admin;
+  el.innerHTML = `<div class="card" style="max-width:420px;margin:20px auto">
+    <h1>${judul}</h1><p class="sub">${ket}</p>
+    <label>Password</label><input type="password" id="pw" autocomplete="current-password">
+    <div style="margin-top:16px"><button class="btn block" id="bLogin">Masuk</button></div></div>`;
+  const login = async () => {
+    A.pw = $('#pw').value;
+    try { A.info = await api('adminLogin'); sessionStorage.setItem('sopAdminPw', A.pw); render(); }
+    catch (e) { A.pw = ''; toast(e.message, true); }
+  };
+  $('#bLogin').onclick = login; $('#pw').onkeydown = e => { if (e.key === 'Enter') login(); };
+}
+
 async function viewUjian(el) {
+  if (!S.admin.pw) return loginForm(el, 'Masuk Penilai', 'Layar penilaian menampilkan kunci jawaban, jadi hanya untuk penilai.');
   if (S.exam) return renderExam(el);
   el.innerHTML = `<div class="loading"><span class="spin"></span> Memuat SOP…</div>`;
   let sops;
   try { sops = await loadSops(true); } catch (e) { el.innerHTML = `<div class="card empty">Gagal memuat: ${esc(e.message)}</div>`; return; }
   if (!el.isConnected) return;
-  const me = JSON.parse(localStorage.getItem('sopStaff') || '{}');
   el.innerHTML = `
     <div class="card">
-      <h1>Ujian Pemahaman SOP</h1>
-      <p class="sub">Isi gramasi yang benar sesuai SOP. Lulus jika nilai <b>100%</b>. Boleh diulang.</p>
+      <h1>Ujian Lisan Gramasi SOP</h1>
+      <p class="sub">Bacakan nama bahan, peserta menjawab gramasinya, lalu tandai <b>✓ Benar</b> atau <b>✗ Salah</b>. Lulus jika nilai <b>100%</b>.</p>
       <div class="grid2">
-        <div><label>Nama</label><input type="text" id="fNama" value="${esc(me.nama)}" placeholder="Nama lengkap" autocomplete="name"></div>
-        <div><label>NIK</label><input type="text" id="fNik" value="${esc(me.nik)}" placeholder="Nomor induk karyawan" inputmode="numeric"></div>
+        <div><label>Nama peserta</label><input type="text" id="fNama" placeholder="Nama lengkap" autocomplete="off"></div>
+        <div><label>NIK peserta</label><input type="text" id="fNik" placeholder="Nomor induk karyawan" inputmode="numeric" autocomplete="off"></div>
       </div>
       <label>Pilih SOP</label>
       <select id="fSop">${sops.length ? sops.map(s => `<option value="${esc(s.id)}">${esc(s.nama)}</option>`).join('') : '<option value="">Belum ada SOP</option>'}</select>
-      <div style="margin-top:18px"><button class="btn block" id="bMulai" ${sops.length ? '' : 'disabled'}>Mulai Ujian</button></div>
+      <div style="margin-top:18px"><button class="btn block" id="bMulai" ${sops.length ? '' : 'disabled'}>Mulai Penilaian</button></div>
     </div>`;
-  $('#bMulai').onclick = async () => {
+  $('#bMulai').onclick = () => {
     const nama = $('#fNama').value.trim(), nik = $('#fNik').value.trim(), id = $('#fSop').value;
-    if (!nama || !nik) return toast('Nama dan NIK wajib diisi', true);
-    localStorage.setItem('sopStaff', JSON.stringify({ nama, nik }));
+    if (!nama || !nik) return toast('Nama dan NIK peserta wajib diisi', true);
     startExam({ nama, nik, id });
   };
 }
@@ -298,66 +321,68 @@ async function startExam(who) {
   el.innerHTML = `<div class="loading"><span class="spin"></span> Menyiapkan soal…</div>`;
   try {
     const ex = await api('getExam', { id: who.id });
-    S.exam = Object.assign({}, who, { data: ex, ans: {}, result: null });
+    S.exam = Object.assign({}, who, { data: ex, tanda: {}, result: null });
     renderExam(el);
   } catch (e) { toast(e.message, true); S.exam = null; render(); }
 }
 function renderExam(el) {
   const ex = S.exam, d = ex.data, r = ex.result;
-  const sop = (S.sops || []).find(s => s.id === d.id);
+  const n = d.soal.length, dinilai = d.soal.filter(l => typeof ex.tanda[l.sid] === 'boolean').length;
+  const benar = d.soal.filter(l => ex.tanda[l.sid] === true).length;
   const res = r ? `
     <div class="card result ${r.lulus ? 'pass' : 'fail'}">
       <div class="tag ${r.lulus ? 'ok' : 'bad'}">${r.lulus ? 'LULUS' : 'BELUM LULUS'}</div>
       <div class="score">${r.skor}%</div>
       <div>${r.benar} dari ${r.total} soal benar · Percobaan ke-${r.percobaan}</div>
-      <p class="muted" style="font-size:13px;margin:8px 0 14px">${r.lulus ? 'Mantap! Semua gramasi sudah sesuai SOP.' : 'Lihat tanda merah di bawah. Baca kembali SOP lalu ulangi ujian.'}</p>
+      <p class="muted" style="font-size:13px;margin:8px 0 14px">Hasil sudah tersimpan ke Google Sheets.</p>
       <div class="row" style="justify-content:center">
-        ${!r.lulus ? `<button class="btn" id="bUlang">Ulangi Ujian</button>` : ''}
-        ${sop && sop.pdfUrl ? `<button class="btn ghost" id="bBaca">Baca SOP</button>` : ''}
-        <button class="btn ${r.lulus ? '' : 'soft'}" id="bSelesai">Selesai</button>
+        ${!r.lulus ? `<button class="btn" id="bUlang">Ulangi (peserta sama)</button>` : ''}
+        <button class="btn ${r.lulus ? '' : 'soft'}" id="bBaru">Peserta berikutnya</button>
       </div>
     </div>` : '';
   el.innerHTML = `
     ${res}
     <div class="card">
       <div class="exhead">
-        <div><h1 style="font-size:19px">${esc(d.nama)}</h1><div class="muted" style="font-size:13px">${esc(ex.nama)} (${esc(ex.nik)}) · ${d.langkah.length} soal gramasi</div></div>
+        <div><h1 style="font-size:19px">${esc(d.nama)}</h1>
+          <div class="muted" style="font-size:13px">Peserta: <b>${esc(ex.nama)}</b> (${esc(ex.nik)})</div></div>
         ${r ? '' : `<button class="btn sm soft" id="bBatal">Batal</button>`}
       </div>
+      ${r ? '' : `<div style="margin-top:12px;font-size:13px" class="muted">Dinilai <b>${dinilai}/${n}</b> · Benar <b>${benar}</b> · Nilai sementara <b>${dinilai ? Math.floor(benar / n * 100) : 0}%</b></div>`}
     </div>
-    ${r ? '' : `<div class="hint">Isi angka gramasi yang benar pada setiap kotak putus-putus.</div>`}
     <ol class="steps">
-      ${d.langkah.map((l, i) => {
-        const ok = r ? r.gram[l.sid] : null;
-        const parts = esc(l.teks).split('___');
-        const inp = `<input type="text" inputmode="decimal" data-sid="${l.sid}" class="${r ? (ok ? 'okin' : 'badin') : ''}" value="${esc(ex.ans[l.sid] || '')}" placeholder="…" ${r ? 'disabled' : ''}>`;
-        const txt = parts.length > 1 ? parts[0] + inp + parts.slice(1).join('___') : esc(l.teks) + ' ' + inp;
-        const mark = r ? (ok ? '<span class="mark ok">✓ Benar</span>' : '<span class="mark bad">✗ Gramasi salah</span>') : '';
-        return `<li class="step ${r ? (ok ? 'ok' : 'bad') : ''}" style="padding-left:12px">
-          <span class="pos">${i + 1}</span>
-          <div class="txt">${txt}${mark}</div>
+      ${d.soal.map((l, i) => {
+        const t = ex.tanda[l.sid];
+        return `<li class="q ${t === true ? 'ok' : t === false ? 'bad' : ''}">
+          <div class="qtop"><span class="pos">${i + 1}</span>
+            <div class="qtxt"><div class="qnama">${esc(l.teks)}</div>
+              <div class="qkunci">Kunci: <b>${esc(l.jawaban)}</b></div></div></div>
+          <div class="qbtn">
+            <button class="yes ${t === true ? 'on' : ''}" data-sid="${l.sid}" data-v="1" ${r ? 'disabled' : ''}>✓ Benar</button>
+            <button class="no ${t === false ? 'on' : ''}" data-sid="${l.sid}" data-v="0" ${r ? 'disabled' : ''}>✗ Salah</button>
+          </div>
         </li>`;
       }).join('')}
     </ol>
-    ${r ? '' : `<button class="btn block" id="bKirim">Kirim Jawaban</button>`}`;
+    ${r ? '' : `<button class="btn block" id="bKirim" ${dinilai < n ? 'disabled' : ''}>${dinilai < n ? `Nilai semua soal dulu (${dinilai}/${n})` : 'Simpan Hasil'}</button>`}`;
 
   if (r) {
     const u = $('#bUlang'); if (u) u.onclick = () => startExam({ nama: ex.nama, nik: ex.nik, id: d.id });
-    const b = $('#bBaca'); if (b) b.onclick = () => openPdf(sop);
-    $('#bSelesai').onclick = () => { S.exam = null; render(); };
+    $('#bBaru').onclick = () => { S.exam = null; render(); };
     return;
   }
-  el.querySelectorAll('input[data-sid]').forEach(inp => inp.oninput = () => ex.ans[inp.dataset.sid] = inp.value);
-  $('#bBatal').onclick = () => { if (confirm('Batalkan ujian? Jawaban tidak disimpan.')) { S.exam = null; render(); } };
+  el.querySelectorAll('.qbtn button').forEach(b => b.onclick = () => {
+    ex.tanda[b.dataset.sid] = b.dataset.v === '1';
+    const y = window.scrollY; renderExam(el); window.scrollTo(0, y);
+  });
+  $('#bBatal').onclick = () => { if (confirm('Batalkan penilaian? Hasil tidak disimpan.')) { S.exam = null; render(); } };
   $('#bKirim').onclick = async () => {
-    const kosong = d.langkah.filter(l => !String(ex.ans[l.sid] || '').trim()).length;
-    if (kosong && !confirm(`${kosong} soal masih kosong. Tetap kirim?`)) return;
-    if (!kosong && !confirm('Kirim jawaban sekarang?')) return;
-    const btn = $('#bKirim'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Menilai…';
+    if (!confirm(`Simpan hasil ${ex.nama}: ${Math.floor(benar / n * 100)}%?`)) return;
+    const btn = $('#bKirim'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Menyimpan…';
     try {
-      ex.result = await api('submit', { id: d.id, nama: ex.nama, nik: ex.nik, jawaban: ex.ans });
+      ex.result = await api('submit', { id: d.id, nama: ex.nama, nik: ex.nik, tanda: ex.tanda });
       renderExam(el); window.scrollTo(0, 0);
-    } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Kirim Jawaban'; }
+    } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Simpan Hasil'; }
   };
 }
 
@@ -410,16 +435,7 @@ function modal(html) {
 async function viewAdmin(el) {
   const A = S.admin;
   if (!A.pw) {
-    el.innerHTML = `<div class="card" style="max-width:420px;margin:20px auto">
-      <h1>Masuk Admin</h1><p class="sub">Untuk upload SOP dan melihat rekap hasil ujian.</p>
-      <label>Password</label><input type="password" id="pw" autocomplete="current-password">
-      <div style="margin-top:16px"><button class="btn block" id="bLogin">Masuk</button></div></div>`;
-    const login = async () => {
-      A.pw = $('#pw').value;
-      try { A.info = await api('adminLogin'); sessionStorage.setItem('sopAdminPw', A.pw); render(); }
-      catch (e) { A.pw = ''; toast(e.message, true); }
-    };
-    $('#bLogin').onclick = login; $('#pw').onkeydown = e => { if (e.key === 'Enter') login(); };
+    loginForm(el, 'Masuk Admin', 'Untuk upload SOP dan melihat rekap hasil ujian.');
     return;
   }
   el.innerHTML = `
@@ -449,13 +465,13 @@ async function admSop(el) {
   el.innerHTML = `
     <div class="card" style="border-style:dashed;text-align:center">
       <h2>Tambah SOP baru</h2>
-      <p class="sub" style="margin-bottom:12px">Upload PDF SOP — soal langkah &amp; gramasi disusun otomatis, lalu Anda periksa sebelum disimpan.</p>
+      <p class="sub" style="margin-bottom:12px">Upload PDF SOP — tabel Ingredient &amp; Weight otomatis jadi soal dan kunci, lalu Anda periksa sebelum disimpan.</p>
       <label class="btn" style="display:inline-flex;margin:0">Pilih PDF SOP<input type="file" id="fPdf" accept="application/pdf" hidden></label>
     </div>
     <h2>Daftar SOP (${sops.length})</h2>
     ${sops.length ? sops.map(s => `
       <div class="card sop">
-        <div class="ic">${s.langkah.filter(l => l.jawaban !== '').length}<br>soal</div>
+        <div class="ic">${soalBahan(s).length}<br>soal</div>
         <div class="info"><div class="t">${esc(s.nama)}</div>
           <div class="m">${[s.counter, s.pdfUrl ? 'PDF ✓' : 'tanpa PDF'].filter(Boolean).map(esc).join(' · ')}</div>
           <div style="margin-top:4px"><span class="tag ${s.aktif ? 'ok' : ''}">${s.aktif ? 'Aktif' : 'Nonaktif'}</span></div></div>
@@ -499,8 +515,8 @@ function loadPdfJs() {
 
 function editor(sop, file) {
   const el = $('#adm');
-  sop.langkah = soalGramasi(sop);
-  if (file && !sop.langkah.length) toast('Gramasi tidak terbaca otomatis — silakan isi manual', true);
+  sop.langkah = soalBahan(sop);
+  if (file && !sop.langkah.length) toast('Tabel bahan tidak terbaca otomatis — silakan isi manual', true);
   const draw = () => {
     el.innerHTML = `
       <div class="card">
@@ -516,32 +532,25 @@ function editor(sop, file) {
           <span class="muted" style="font-size:13px">${file ? '📄 ' + esc(file.name) + ' (akan diunggah)' : sop.pdfUrl ? '📄 PDF tersimpan' : 'Belum ada PDF'}</span>
           <label class="btn sm ghost" style="margin:0">${sop.pdfUrl || file ? 'Ganti PDF' : 'Pilih PDF'}<input type="file" id="ePdf" accept="application/pdf" hidden></label>
         </div>
-        ${sop.bahan && sop.bahan.length ? `<label>Bahan &amp; gramasi di PDF (acuan)</label><div class="bahan">${sop.bahan.map(b => `<span>${esc(b.nama)} <b>${esc(b.qty)} ${esc(b.unit)}</b></span>`).join('')}</div>` : ''}
       </div>
       <div class="card">
-        <h2>Soal gramasi (${sop.langkah.length})</h2>
+        <h2>Soal (${sop.langkah.length})</h2>
         <div class="hint" style="margin-bottom:10px">
-          Tulis <b>___</b> (3 garis bawah) di pertanyaan sebagai tempat staff mengisi angka, lalu isi <b>Jawaban</b> yang benar.
+          <b>Pertanyaan</b> = nama bahan (kolom Ingredient). <b>Kunci</b> = gramasi (kolom Weight), misal <b>15 gr</b> atau <b>1 p</b>.
         </div>
-        <div class="ed-head" style="grid-template-columns:1fr 92px auto"><span>Pertanyaan</span><span>Jawaban</span><span></span></div>
+        <div class="ed-head" style="grid-template-columns:1fr 90px auto"><span>Pertanyaan (Ingredient)</span><span>Kunci (Weight)</span><span></span></div>
         <div id="eSteps">${sop.langkah.map((l, i) => `
-          <div class="ed-step" style="grid-template-columns:1fr 92px auto">
-            <textarea data-i="${i}" data-k="teks" rows="2">${esc(l.teks)}</textarea>
-            <input type="text" inputmode="decimal" data-i="${i}" data-k="jawaban" value="${esc(l.jawaban)}" placeholder="angka">
+          <div class="ed-step ed-soal" style="grid-template-columns:1fr 90px auto">
+            <input type="text" data-i="${i}" data-k="teks" value="${esc(l.teks)}" placeholder="mis. TUNA MAYO">
+            <input type="text" data-i="${i}" data-k="jawaban" value="${esc(l.jawaban)}" placeholder="mis. 15 gr">
             <div class="tools"><button data-a="del" data-i="${i}" style="color:var(--bad)">✕</button></div>
           </div>`).join('') || '<div class="empty">Belum ada soal — tambahkan di bawah.</div>'}</div>
         <div style="margin-top:12px"><button class="btn sm soft" id="eAdd">+ Tambah soal</button></div>
       </div>
-      <div class="card">
-        <h2>Pratinjau kunci jawaban</h2>
-        <div class="key" id="eKey"></div>
-      </div>
       <button class="btn block" id="eSimpan">Simpan SOP</button>`;
     bind();
   };
-  const key = () => {
-    $('#eKey').innerHTML = sop.langkah.map((l, i) => `<div>${i + 1}. ${esc(l.teks).replace(/___/g, `<b style="color:var(--brand)">${esc(l.jawaban || '?')}</b>`)}</div>`).join('');
-  };
+  const key = () => {};
   const bind = () => {
     el.querySelectorAll('[data-f]').forEach(inp => inp.oninput = inp.onchange = () => { const k = inp.dataset.f; sop[k] = k === 'aktif' ? inp.value === '1' : inp.value; });
     el.querySelectorAll('#eSteps [data-k]').forEach(inp => inp.oninput = () => { const l = sop.langkah[+inp.dataset.i]; l[inp.dataset.k] = inp.dataset.k === 'urutan' ? Number(inp.value) : inp.value; key(); });
@@ -561,11 +570,7 @@ function editor(sop, file) {
     if (!String(sop.nama || '').trim()) return toast('Nama item wajib diisi', true);
     if (!sop.langkah.length) return toast('Minimal 1 soal gramasi', true);
     for (const [i, l] of sop.langkah.entries()) {
-      const ada = l.teks.includes('___'), j = String(l.jawaban ?? '').trim();
-      if (!ada) return toast(`Soal ${i + 1}: tulis ___ di pertanyaan`, true);
-      if (!j) return toast(`Soal ${i + 1}: jawaban masih kosong`, true);
-      if (j && isNaN(parseFloat(j.replace(',', '.')))) return toast(`Soal ${i + 1}: jawaban harus angka`, true);
-      if ((l.teks.match(/___/g) || []).length > 1) return toast(`Soal ${i + 1}: hanya boleh satu ___ per soal`, true);
+      if (!String(l.jawaban ?? '').trim()) return toast(`Soal ${i + 1} (${l.teks}): kunci masih kosong`, true);
     }
     const btn = $('#eSimpan'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Menyimpan…';
     try {
