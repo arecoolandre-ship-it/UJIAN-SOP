@@ -232,7 +232,7 @@ const Demo = {
       const h = nilai(s.langkah, r.tanda);
       h.percobaan = 1 + d.hasil.filter(x => x.nik.toUpperCase() === r.nik.toUpperCase() && x.namaSop === s.nama).length;
       const now = new Date(); const p = n => String(n).padStart(2, '0');
-      d.hasil.unshift({ waktu: `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`,
+      d.hasil.unshift({ waktu: `${p(now.getDate())}-${p(now.getMonth()+1)}-${now.getFullYear()}`,
         nama: r.nama, nik: r.nik, namaSop: s.nama, skor: h.skor, lulus: h.lulus, percobaan: h.percobaan, kesalahan: h.kesalahan });
       this.save(d); return h;
     }
@@ -626,9 +626,9 @@ async function admHasil(el) {
         </tbody></table></div>` : '<div class="empty">Belum ada hasil.</div>'}
       </div>
       <div class="card"><h2>Riwayat semua percobaan (${rows.length})</h2>
-        ${rows.length ? `<div class="tbl"><table><thead><tr><th>Waktu</th><th>Nama</th><th>SOP</th><th>Ke</th><th>Skor</th><th>Kesalahan</th></tr></thead><tbody>
+        ${rows.length ? `<div class="tbl"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>SOP</th><th>Ke</th><th>Skor</th></tr></thead><tbody>
         ${rows.map(h => `<tr><td style="white-space:nowrap">${esc(h.waktu)}</td><td>${esc(h.nama)}<div class="muted" style="font-size:11.5px">${esc(h.nik)}</div></td><td>${esc(h.namaSop)}</td><td>${h.percobaan}</td>
-          <td><span class="tag ${h.lulus ? 'ok' : 'bad'}">${h.skor}%</span></td><td style="font-size:12.5px">${esc(h.kesalahan) || '—'}</td></tr>`).join('')}
+          <td><span class="tag ${h.lulus ? 'ok' : 'bad'}">${h.skor}%</span></td></tr>`).join('')}
         </tbody></table></div>` : '<div class="empty">Belum ada hasil.</div>'}
       </div>`;
   };
