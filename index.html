@@ -7,7 +7,6 @@
 <meta name="theme-color" content="#7a1f1a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
 :root{
   --bg:#f7f3ec; --card:#fff; --ink:#221d18; --muted:#776d62; --line:#e7dfd3;
@@ -122,7 +121,7 @@ th{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--mut
 <body>
 <header>
   <div class="hwrap">
-    <div class="brand"><div class="dot">✓</div><div>Ujian SOP<small>Langkah kerja &amp; gramasi</small></div></div>
+    <div class="brand"><div class="dot">✓</div><div>Ujian SOP<small>Uji gramasi SOP</small></div></div>
     <nav>
       <button data-v="ujian" class="on">Ujian</button>
       <button data-v="pustaka">Pustaka SOP</button>
@@ -161,37 +160,32 @@ async function api(action, payload = {}) {
   return j.data;
 }
 
-/* Penilaian — logika SAMA dengan nilai_() di Code.gs */
-function nilai(langkah, susunan, jawaban) {
-  const map = {}; langkah.forEach(l => map[l.sid] = l);
-  if (!Array.isArray(susunan) || susunan.length !== langkah.length || susunan.some(s => !map[s]) ||
-      new Set(susunan).size !== langkah.length) throw new Error('Susunan jawaban tidak valid');
-  const sorted = langkah.map(l => Number(l.urutan)).sort((a, b) => a - b);
-  const posisi = susunan.map((sid, i) => Number(map[sid].urutan) === sorted[i]);
+/* Penilaian gramasi — logika SAMA dengan nilai_() di Code.gs */
+function nilai(langkah, jawaban) {
   const gram = {};
   langkah.forEach(l => {
     if (l.jawaban === '' || l.jawaban == null) return;
     const v = parseFloat(String((jawaban || {})[l.sid] == null ? '' : jawaban[l.sid]).replace(',', '.'));
     gram[l.sid] = !isNaN(v) && Math.abs(v - Number(l.jawaban)) < 1e-9;
   });
-  const total = posisi.length + Object.keys(gram).length;
-  const benar = posisi.filter(Boolean).length + Object.values(gram).filter(Boolean).length;
-  const salahPos = posisi.map((b, i) => b ? null : i + 1).filter(x => x);
-  const salahGram = langkah.filter(l => gram[l.sid] === false).map(l => l.teks.replace(/___/g, '?'));
-  const ket = [];
-  if (salahPos.length) ket.push('Urutan salah di posisi ' + salahPos.join(', '));
-  if (salahGram.length) ket.push('Gramasi salah: ' + salahGram.join(' | '));
-  return { posisi, gram, total, benar, skor: Math.floor(benar / total * 100), lulus: benar === total, kesalahan: ket.join('; ') };
+  const total = Object.keys(gram).length;
+  if (!total) throw new Error('SOP ini belum punya soal gramasi');
+  const benar = Object.values(gram).filter(Boolean).length;
+  const salah = langkah.filter(l => gram[l.sid] === false).map(l => l.teks.replace(/___/g, '?'));
+  return { gram, total, benar, skor: Math.floor(benar / total * 100), lulus: benar === total,
+    kesalahan: salah.length ? 'Gramasi salah: ' + salah.join(' | ') : '' };
 }
-function acak(steps, master) {
-  const u = {}; master.forEach(l => u[l.sid] = Number(l.urutan));
-  const sorted = master.map(l => Number(l.urutan)).sort((a, b) => a - b);
-  let arr = steps.slice();
-  for (let t = 0; t < 20; t++) {
-    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
-    if (!arr.every((s, i) => u[s.sid] === sorted[i])) break;
-  }
+function acak(arr) {
+  arr = arr.slice();
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
   return arr;
+}
+/* Ambil soal gramasi dari langkah; jika tidak ada, buat dari tabel bahan (satuan berat/volume). */
+function soalGramasi(sop) {
+  let soal = (sop.langkah || []).filter(l => String(l.jawaban ?? '').trim() !== '');
+  if (!soal.length) soal = (sop.bahan || []).filter(b => /^(gr|gram|g|kg|ml)$/i.test(b.unit))
+    .map(b => ({ teks: `Gramasi ${b.nama.toLowerCase()}: ___ ${/^g/i.test(b.unit) ? 'gram' : b.unit.toLowerCase()}`, jawaban: b.qty }));
+  return soal.map((l, i) => Object.assign({}, l, { urutan: i + 1 }));
 }
 
 /* ================= MODE DEMO (localStorage) ================= */
@@ -219,11 +213,13 @@ const Demo = {
     if (r.action === 'listSop') return d.sops.filter(s => s.aktif).map(pub);
     if (r.action === 'getExam') {
       const s = d.sops.find(x => x.id === r.id && x.aktif); if (!s) throw new Error('SOP tidak ditemukan');
-      return { id: s.id, no: s.no, nama: s.nama, langkah: acak(s.langkah.map(l => ({ sid: l.sid, teks: l.teks, blank: l.jawaban !== '' })), s.langkah) };
+      const soal = s.langkah.filter(l => l.jawaban !== '').map(l => ({ sid: l.sid, teks: l.teks, blank: true }));
+      if (!soal.length) throw new Error('SOP ini belum punya soal gramasi');
+      return { id: s.id, nama: s.nama, langkah: acak(soal) };
     }
     if (r.action === 'submit') {
       const s = d.sops.find(x => x.id === r.id); if (!s) throw new Error('SOP tidak ditemukan');
-      const h = nilai(s.langkah, r.susunan, r.jawaban);
+      const h = nilai(s.langkah, r.jawaban);
       h.percobaan = 1 + d.hasil.filter(x => x.nik.toUpperCase() === r.nik.toUpperCase() && x.namaSop === s.nama).length;
       const now = new Date(); const p = n => String(n).padStart(2, '0');
       d.hasil.unshift({ waktu: `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`,
@@ -281,7 +277,7 @@ async function viewUjian(el) {
   el.innerHTML = `
     <div class="card">
       <h1>Ujian Pemahaman SOP</h1>
-      <p class="sub">Susun langkah kerja sesuai urutan SOP dan isi gramasi yang benar. Lulus jika nilai <b>100%</b>. Boleh diulang.</p>
+      <p class="sub">Isi gramasi yang benar sesuai SOP. Lulus jika nilai <b>100%</b>. Boleh diulang.</p>
       <div class="grid2">
         <div><label>Nama</label><input type="text" id="fNama" value="${esc(me.nama)}" placeholder="Nama lengkap" autocomplete="name"></div>
         <div><label>NIK</label><input type="text" id="fNik" value="${esc(me.nik)}" placeholder="Nomor induk karyawan" inputmode="numeric"></div>
@@ -302,20 +298,19 @@ async function startExam(who) {
   el.innerHTML = `<div class="loading"><span class="spin"></span> Menyiapkan soal…</div>`;
   try {
     const ex = await api('getExam', { id: who.id });
-    S.exam = Object.assign({}, who, { data: ex, order: ex.langkah.map(l => l.sid), ans: {}, result: null });
+    S.exam = Object.assign({}, who, { data: ex, ans: {}, result: null });
     renderExam(el);
   } catch (e) { toast(e.message, true); S.exam = null; render(); }
 }
 function renderExam(el) {
   const ex = S.exam, d = ex.data, r = ex.result;
-  const map = {}; d.langkah.forEach(l => map[l.sid] = l);
   const sop = (S.sops || []).find(s => s.id === d.id);
   const res = r ? `
     <div class="card result ${r.lulus ? 'pass' : 'fail'}">
       <div class="tag ${r.lulus ? 'ok' : 'bad'}">${r.lulus ? 'LULUS' : 'BELUM LULUS'}</div>
       <div class="score">${r.skor}%</div>
-      <div>${r.benar} dari ${r.total} poin benar · Percobaan ke-${r.percobaan}</div>
-      <p class="muted" style="font-size:13px;margin:8px 0 14px">${r.lulus ? 'Mantap! Langkah dan gramasi sudah sesuai SOP.' : 'Lihat tanda merah di bawah. Baca kembali SOP lalu ulangi ujian.'}</p>
+      <div>${r.benar} dari ${r.total} soal benar · Percobaan ke-${r.percobaan}</div>
+      <p class="muted" style="font-size:13px;margin:8px 0 14px">${r.lulus ? 'Mantap! Semua gramasi sudah sesuai SOP.' : 'Lihat tanda merah di bawah. Baca kembali SOP lalu ulangi ujian.'}</p>
       <div class="row" style="justify-content:center">
         ${!r.lulus ? `<button class="btn" id="bUlang">Ulangi Ujian</button>` : ''}
         ${sop && sop.pdfUrl ? `<button class="btn ghost" id="bBaca">Baca SOP</button>` : ''}
@@ -326,34 +321,21 @@ function renderExam(el) {
     ${res}
     <div class="card">
       <div class="exhead">
-        <div><h1 style="font-size:19px">${esc(d.nama)}</h1><div class="muted" style="font-size:13px">${esc(ex.nama)} (${esc(ex.nik)})</div></div>
+        <div><h1 style="font-size:19px">${esc(d.nama)}</h1><div class="muted" style="font-size:13px">${esc(ex.nama)} (${esc(ex.nik)}) · ${d.langkah.length} soal gramasi</div></div>
         ${r ? '' : `<button class="btn sm soft" id="bBatal">Batal</button>`}
       </div>
     </div>
-    ${r ? '' : `<div class="hint">① Geser kartu (⋮⋮) atau tekan ▲▼ untuk menyusun urutan langkah dari <b>pertama</b> sampai <b>terakhir</b>.<br>② Isi angka gramasi pada kotak putus-putus.</div>`}
-    <ol class="steps" id="steps">
-      ${ex.order.map((sid, i) => {
-        const l = map[sid];
-        let cls = '', mark = '';
-        if (r) {
-          const pOk = r.posisi[i], gOk = r.gram[sid];
-          cls = (pOk && gOk !== false) ? 'ok' : 'bad';
-          const m = [];
-          if (!pOk) m.push('<span class="mark bad">✗ Urutan tidak tepat</span>');
-          if (gOk === false) m.push('<span class="mark bad">✗ Gramasi salah</span>');
-          if (!m.length) m.push('<span class="mark ok">✓ Benar</span>');
-          mark = m.join('');
-        }
-        const inCls = r && l.blank ? (r.gram[sid] ? 'okin' : 'badin') : '';
+    ${r ? '' : `<div class="hint">Isi angka gramasi yang benar pada setiap kotak putus-putus.</div>`}
+    <ol class="steps">
+      ${d.langkah.map((l, i) => {
+        const ok = r ? r.gram[l.sid] : null;
         const parts = esc(l.teks).split('___');
-        const txt = l.blank && parts.length > 1
-          ? parts[0] + `<input type="text" inputmode="decimal" data-sid="${sid}" class="${inCls}" value="${esc(ex.ans[sid] || '')}" placeholder="…" ${r ? 'disabled' : ''}>` + parts.slice(1).join('___')
-          : esc(l.teks);
-        return `<li class="step ${cls}" data-sid="${sid}">
-          ${r ? '' : '<span class="handle">⋮⋮</span>'}
+        const inp = `<input type="text" inputmode="decimal" data-sid="${l.sid}" class="${r ? (ok ? 'okin' : 'badin') : ''}" value="${esc(ex.ans[l.sid] || '')}" placeholder="…" ${r ? 'disabled' : ''}>`;
+        const txt = parts.length > 1 ? parts[0] + inp + parts.slice(1).join('___') : esc(l.teks) + ' ' + inp;
+        const mark = r ? (ok ? '<span class="mark ok">✓ Benar</span>' : '<span class="mark bad">✗ Gramasi salah</span>') : '';
+        return `<li class="step ${r ? (ok ? 'ok' : 'bad') : ''}" style="padding-left:12px">
           <span class="pos">${i + 1}</span>
           <div class="txt">${txt}${mark}</div>
-          ${r ? '' : `<div class="mv"><button data-up="${i}" aria-label="Naik">▲</button><button data-dn="${i}" aria-label="Turun">▼</button></div>`}
         </li>`;
       }).join('')}
     </ol>
@@ -365,21 +347,15 @@ function renderExam(el) {
     $('#bSelesai').onclick = () => { S.exam = null; render(); };
     return;
   }
-  const list = $('#steps');
-  list.querySelectorAll('input[data-sid]').forEach(inp => inp.oninput = () => ex.ans[inp.dataset.sid] = inp.value);
-  const swap = (i, j) => { if (j < 0 || j >= ex.order.length) return; [ex.order[i], ex.order[j]] = [ex.order[j], ex.order[i]]; renderExam(el); };
-  list.querySelectorAll('[data-up]').forEach(b => b.onclick = () => swap(+b.dataset.up, +b.dataset.up - 1));
-  list.querySelectorAll('[data-dn]').forEach(b => b.onclick = () => swap(+b.dataset.dn, +b.dataset.dn + 1));
-  if (window.Sortable) Sortable.create(list, { handle: '.handle', animation: 150, chosenClass: 'chosen',
-    onEnd: () => { ex.order = [...list.children].map(li => li.dataset.sid); renderExam(el); } });
+  el.querySelectorAll('input[data-sid]').forEach(inp => inp.oninput = () => ex.ans[inp.dataset.sid] = inp.value);
   $('#bBatal').onclick = () => { if (confirm('Batalkan ujian? Jawaban tidak disimpan.')) { S.exam = null; render(); } };
   $('#bKirim').onclick = async () => {
-    const kosong = d.langkah.filter(l => l.blank && !String(ex.ans[l.sid] || '').trim()).length;
-    if (kosong && !confirm(`${kosong} kotak gramasi masih kosong. Tetap kirim?`)) return;
+    const kosong = d.langkah.filter(l => !String(ex.ans[l.sid] || '').trim()).length;
+    if (kosong && !confirm(`${kosong} soal masih kosong. Tetap kirim?`)) return;
     if (!kosong && !confirm('Kirim jawaban sekarang?')) return;
     const btn = $('#bKirim'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Menilai…';
     try {
-      ex.result = await api('submit', { id: d.id, nama: ex.nama, nik: ex.nik, susunan: ex.order, jawaban: ex.ans });
+      ex.result = await api('submit', { id: d.id, nama: ex.nama, nik: ex.nik, jawaban: ex.ans });
       renderExam(el); window.scrollTo(0, 0);
     } catch (e) { toast(e.message, true); btn.disabled = false; btn.textContent = 'Kirim Jawaban'; }
   };
@@ -479,7 +455,7 @@ async function admSop(el) {
     <h2>Daftar SOP (${sops.length})</h2>
     ${sops.length ? sops.map(s => `
       <div class="card sop">
-        <div class="ic">${s.langkah.length}<br>lkh</div>
+        <div class="ic">${s.langkah.filter(l => l.jawaban !== '').length}<br>soal</div>
         <div class="info"><div class="t">${esc(s.nama)}</div>
           <div class="m">${[s.counter, s.pdfUrl ? 'PDF ✓' : 'tanpa PDF'].filter(Boolean).map(esc).join(' · ')}</div>
           <div style="margin-top:4px"><span class="tag ${s.aktif ? 'ok' : ''}">${s.aktif ? 'Aktif' : 'Nonaktif'}</span></div></div>
@@ -495,9 +471,9 @@ async function admSop(el) {
       const buf = await f.arrayBuffer();
       const lib = await loadPdfJs();
       const p = await parsePdfFile(buf.slice(0), lib);
-      if (!p.langkah.length) toast('Langkah tidak terbaca otomatis — silakan isi manual', true);
+
       editor({ nama: p.nama || f.name.replace(/\.pdf$/i, ''), no: '', counter: p.counter, store: '', tanggal: '',
-        bahan: p.bahan, langkah: p.langkah.length ? p.langkah : [{ urutan: 1, teks: '', jawaban: '' }, { urutan: 2, teks: '', jawaban: '' }], aktif: true }, f);
+        bahan: p.bahan, langkah: p.langkah, aktif: true }, f);
     } catch (err) { toast('Gagal membaca PDF: ' + err.message, true); render(); }
   };
   el.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => editor(JSON.parse(JSON.stringify(sops.find(s => s.id === b.dataset.ed))), null));
@@ -523,6 +499,8 @@ function loadPdfJs() {
 
 function editor(sop, file) {
   const el = $('#adm');
+  sop.langkah = soalGramasi(sop);
+  if (file && !sop.langkah.length) toast('Gramasi tidak terbaca otomatis — silakan isi manual', true);
   const draw = () => {
     el.innerHTML = `
       <div class="card">
@@ -541,20 +519,18 @@ function editor(sop, file) {
         ${sop.bahan && sop.bahan.length ? `<label>Bahan &amp; gramasi di PDF (acuan)</label><div class="bahan">${sop.bahan.map(b => `<span>${esc(b.nama)} <b>${esc(b.qty)} ${esc(b.unit)}</b></span>`).join('')}</div>` : ''}
       </div>
       <div class="card">
-        <h2>Soal: langkah kerja + gramasi</h2>
+        <h2>Soal gramasi (${sop.langkah.length})</h2>
         <div class="hint" style="margin-bottom:10px">
-          • <b>No urut</b> = urutan yang benar. Langkah yang <b>boleh ditukar</b> (mis. variasi topping) beri nomor <b>sama</b>.<br>
-          • Tulis <b>___</b> (3 garis bawah) di teks tempat staff mengisi angka, lalu isi <b>Jawaban</b>-nya. Kosongkan jawaban jika langkah tanpa gramasi.
+          Tulis <b>___</b> (3 garis bawah) di pertanyaan sebagai tempat staff mengisi angka, lalu isi <b>Jawaban</b> yang benar.
         </div>
-        <div class="ed-head"><span>No urut</span><span>Teks langkah</span><span>Jawaban</span><span></span></div>
+        <div class="ed-head" style="grid-template-columns:1fr 92px auto"><span>Pertanyaan</span><span>Jawaban</span><span></span></div>
         <div id="eSteps">${sop.langkah.map((l, i) => `
-          <div class="ed-step">
-            <input type="number" min="1" data-i="${i}" data-k="urutan" value="${esc(l.urutan)}">
+          <div class="ed-step" style="grid-template-columns:1fr 92px auto">
             <textarea data-i="${i}" data-k="teks" rows="2">${esc(l.teks)}</textarea>
-            <input type="text" inputmode="decimal" data-i="${i}" data-k="jawaban" value="${esc(l.jawaban)}" placeholder="—">
-            <div class="tools"><button data-a="up" data-i="${i}">▲</button><button data-a="dn" data-i="${i}">▼</button><button data-a="del" data-i="${i}" style="color:var(--bad)">✕</button></div>
-          </div>`).join('')}</div>
-        <div style="margin-top:12px"><button class="btn sm soft" id="eAdd">+ Tambah langkah</button></div>
+            <input type="text" inputmode="decimal" data-i="${i}" data-k="jawaban" value="${esc(l.jawaban)}" placeholder="angka">
+            <div class="tools"><button data-a="del" data-i="${i}" style="color:var(--bad)">✕</button></div>
+          </div>`).join('') || '<div class="empty">Belum ada soal — tambahkan di bawah.</div>'}</div>
+        <div style="margin-top:12px"><button class="btn sm soft" id="eAdd">+ Tambah soal</button></div>
       </div>
       <div class="card">
         <h2>Pratinjau kunci jawaban</h2>
@@ -564,36 +540,32 @@ function editor(sop, file) {
     bind();
   };
   const key = () => {
-    const ls = sop.langkah.slice().sort((a, b) => a.urutan - b.urutan);
-    $('#eKey').innerHTML = ls.map(l => `<div>${esc(l.urutan)}. ${esc(l.teks).replace(/___/g, `<b style="color:var(--brand)">${esc(l.jawaban || '?')}</b>`)}</div>`).join('');
+    $('#eKey').innerHTML = sop.langkah.map((l, i) => `<div>${i + 1}. ${esc(l.teks).replace(/___/g, `<b style="color:var(--brand)">${esc(l.jawaban || '?')}</b>`)}</div>`).join('');
   };
   const bind = () => {
     el.querySelectorAll('[data-f]').forEach(inp => inp.oninput = inp.onchange = () => { const k = inp.dataset.f; sop[k] = k === 'aktif' ? inp.value === '1' : inp.value; });
     el.querySelectorAll('#eSteps [data-k]').forEach(inp => inp.oninput = () => { const l = sop.langkah[+inp.dataset.i]; l[inp.dataset.k] = inp.dataset.k === 'urutan' ? Number(inp.value) : inp.value; key(); });
     el.querySelectorAll('#eSteps [data-a]').forEach(b => b.onclick = () => {
       const i = +b.dataset.i, L = sop.langkah;
-      if (b.dataset.a === 'del') { if (L.length <= 2) return toast('Minimal 2 langkah', true); L.splice(i, 1); }
-      if (b.dataset.a === 'up' && i > 0) [L[i - 1], L[i]] = [L[i], L[i - 1]];
-      if (b.dataset.a === 'dn' && i < L.length - 1) [L[i + 1], L[i]] = [L[i], L[i + 1]];
+      if (b.dataset.a === 'del') L.splice(i, 1);
       draw();
     });
-    $('#eAdd').onclick = () => { const mx = Math.max(0, ...sop.langkah.map(l => +l.urutan || 0)); sop.langkah.push({ urutan: mx + 1, teks: '', jawaban: '' }); draw(); };
+    $('#eAdd').onclick = () => { sop.langkah.push({ teks: '', jawaban: '' }); draw(); };
     $('#ePdf').onchange = e => { if (e.target.files[0]) { file = e.target.files[0]; draw(); } };
     $('#eBatal').onclick = () => render();
     $('#eSimpan').onclick = simpan;
     key();
   };
   const simpan = async () => {
-    sop.langkah = sop.langkah.filter(l => String(l.teks).trim());
+    sop.langkah = sop.langkah.filter(l => String(l.teks).trim()).map((l, i) => Object.assign(l, { urutan: i + 1 }));
     if (!String(sop.nama || '').trim()) return toast('Nama item wajib diisi', true);
-    if (sop.langkah.length < 2) return toast('Minimal 2 langkah', true);
+    if (!sop.langkah.length) return toast('Minimal 1 soal gramasi', true);
     for (const [i, l] of sop.langkah.entries()) {
       const ada = l.teks.includes('___'), j = String(l.jawaban ?? '').trim();
-      if (!(Number(l.urutan) >= 1)) return toast(`Langkah ${i + 1}: no urut belum diisi`, true);
-      if (ada && !j) return toast(`Langkah ${i + 1}: ada ___ tapi jawaban kosong`, true);
-      if (!ada && j) return toast(`Langkah ${i + 1}: ada jawaban tapi teks belum diberi ___`, true);
-      if (j && isNaN(parseFloat(j.replace(',', '.')))) return toast(`Langkah ${i + 1}: jawaban harus angka`, true);
-      if ((l.teks.match(/___/g) || []).length > 1) return toast(`Langkah ${i + 1}: hanya boleh satu ___ per langkah`, true);
+      if (!ada) return toast(`Soal ${i + 1}: tulis ___ di pertanyaan`, true);
+      if (!j) return toast(`Soal ${i + 1}: jawaban masih kosong`, true);
+      if (j && isNaN(parseFloat(j.replace(',', '.')))) return toast(`Soal ${i + 1}: jawaban harus angka`, true);
+      if ((l.teks.match(/___/g) || []).length > 1) return toast(`Soal ${i + 1}: hanya boleh satu ___ per soal`, true);
     }
     const btn = $('#eSimpan'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Menyimpan…';
     try {
