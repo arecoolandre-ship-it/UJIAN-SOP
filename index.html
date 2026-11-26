@@ -225,7 +225,7 @@ const Demo = {
       const s = d.sops.find(x => x.id === r.id && x.aktif); if (!s) throw new Error('SOP tidak ditemukan');
       const soal = s.langkah.filter(l => l.teks && l.jawaban !== '').map(l => ({ sid: l.sid, teks: l.teks, jawaban: l.jawaban }));
       if (!soal.length) throw new Error('SOP ini belum punya soal');
-      return { id: s.id, nama: s.nama, soal: acak(soal) };
+      return { id: s.id, nama: s.nama, soal };
     }
     if (r.action === 'submit') {
       const s = d.sops.find(x => x.id === r.id); if (!s) throw new Error('SOP tidak ditemukan');
